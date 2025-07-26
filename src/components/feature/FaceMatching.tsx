@@ -64,23 +64,19 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
     
     setIsProcessing(true);
     setResult(null);
-    toast({ title: 'Scanning all zones for face match...' });
+    toast({ title: 'Scanning Zone A for face match...' });
     
     try {
         const zoneA = zones.find(z => z.name === 'Zone A');
-        const zoneB = zones.find(z => z.name === 'Zone B');
 
-        if(!zoneA || !zoneB) {
-            throw new Error("Zone A or Zone B not found");
+        if(!zoneA) {
+            throw new Error("Zone A not found");
         }
         
-        const [zoneADataUri, zoneBDataUri] = await Promise.all([
-            getFrameAsDataUri(zoneA.id),
-            getFrameAsDataUri(zoneB.id)
-        ]);
+        const zoneADataUri = await getFrameAsDataUri(zoneA.id);
         
-        if (!zoneADataUri || !zoneBDataUri) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not capture frames from one or more zones.' });
+        if (!zoneADataUri) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not capture frame from Zone A.' });
             setIsProcessing(false);
             return;
         }
@@ -88,22 +84,18 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
       const analysisResult = await faceMatch({
           targetPhotoDataUri: personPhoto,
           zoneADataUri,
-          zoneBDataUri
       });
 
-      const matchInA = analysisResult.matchConfidenceZoneA > 75;
-      const matchInB = analysisResult.matchConfidenceZoneB > 75;
-      const matchFound = matchInA || matchInB;
-      const bestMatchZone = analysisResult.matchConfidenceZoneA > analysisResult.matchConfidenceZoneB ? zoneA : zoneB;
+      const matchFound = (analysisResult.matchConfidence || 0) > 75;
 
       const finalResult: FaceMatchResult = {
         matchFound,
-        confidenceScore: Math.max(analysisResult.matchConfidenceZoneA, analysisResult.matchConfidenceZoneB) / 100,
-        timestamp: new Date().toISOString(),
-        frameDataUri: analysisResult.matchConfidenceZoneA > analysisResult.matchConfidenceZoneB ? zoneADataUri : zoneBDataUri,
+        confidenceScore: (analysisResult.matchConfidence || 0) / 100,
+        timestamp: analysisResult.timestamp || new Date().toISOString(),
+        frameDataUri: zoneADataUri,
         personPhotoDataUri: personPhoto,
-        zoneId: bestMatchZone.id,
-        zoneName: bestMatchZone.name,
+        zoneId: zoneA.id,
+        zoneName: analysisResult.zoneName,
       };
 
       setResult(finalResult);
@@ -121,7 +113,7 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
           location: finalResult.zoneName,
         });
       } else {
-        toast({ title: 'No Match Found', description: 'The person of interest was not detected in any zone.' });
+        toast({ title: 'No Match Found', description: `The person of interest was not detected in ${analysisResult.zoneName}.` });
       }
 
     } catch (error) {
@@ -138,7 +130,7 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
         <ScanFace className="h-5 w-5" />
         <h4 className="font-semibold">Face Matching Tool</h4>
       </div>
-      <p className="text-sm text-muted-foreground">Upload a photo to find a person of interest across all camera feeds.</p>
+      <p className="text-sm text-muted-foreground">Upload a photo to find a person of interest in Zone A.</p>
       
         <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -168,7 +160,7 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
             <Button className="w-full" onClick={handleAnalysis} disabled={isProcessing || !personPhoto}>
                 {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <ScanFace className="mr-2 h-4 w-4" />
-                Analyze for Match
+                Analyze Zone A for Match
             </Button>
         </div>
       

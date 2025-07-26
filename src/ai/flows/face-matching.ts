@@ -23,31 +23,23 @@ const FaceMatchInputSchema = z.object({
     .describe(
       "A photo of zone A, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  zoneBDataUri: z
-    .string()
-    .describe(
-      "A photo of zone B, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
 });
 
 export type FaceMatchInput = z.infer<typeof FaceMatchInputSchema>;
 
 const FaceMatchOutputSchema = z.object({
-  matchConfidenceZoneA: z
-    .number()
-    .describe('The confidence percentage (0-100) of a face match in Zone A.'),
-  matchConfidenceZoneB: z
-    .number()
-    .describe('The confidence percentage (0-100) of a face match in Zone B.'),
-  firstSeenTimestampZoneA: z
-    .string()
-    .optional()
-    .describe('The timestamp when the face was first seen in Zone A.'),
-  lastSeenTimestampZoneB: z
-    .string()
-    .optional()
-    .describe('The timestamp when the face was last seen in Zone B.'),
+    matchConfidence: z
+        .number()
+        .describe('The confidence percentage (0-100) of a face match in the zone.'),
+    zoneName: z
+        .string()
+        .describe('The name of the zone where the face match was attempted.'),
+    timestamp: z
+        .string()
+        .optional()
+        .describe('The timestamp when the face was seen.'),
 });
+
 
 export type FaceMatchOutput = z.infer<typeof FaceMatchOutputSchema>;
 
@@ -61,16 +53,16 @@ const faceMatchPrompt = ai.definePrompt({
   output: {schema: FaceMatchOutputSchema},
   prompt: `You are an expert in face recognition and analysis.
 
-You are provided with a target photo, and two snapshots from Zone A and Zone B.
+You are provided with a target photo and a snapshot from Zone A.
 
-Analyze the images and determine if the target face is present in either zone.
+Analyze the image and determine if the target face is present in the zone.
 
 Target Photo: {{media url=targetPhotoDataUri}}
 Zone A Snapshot: {{media url=zoneADataUri}}
-Zone B Snapshot: {{media url=zoneBDataUri}}
 
-Provide a confidence percentage (0-100) for each zone, indicating the likelihood of a face match.
-If a match is found, provide a timestamp for when the face was first seen in Zone A (firstSeenTimestampZoneA) and last seen in Zone B (lastSeenTimestampZoneB). If no match is found, leave the timestamp fields blank.
+Provide a confidence percentage (0-100) for the zone, indicating the likelihood of a face match.
+If a match is found, provide a timestamp for when the face was seen. If no match is found, leave the timestamp field blank.
+The zoneName should be "Zone A".
 
 Ensure your output matches the following schema:
 ${JSON.stringify(FaceMatchOutputSchema.describe, null, 2)}`,
