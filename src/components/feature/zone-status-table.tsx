@@ -1,7 +1,7 @@
 'use client';
 
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { RiskLevel } from '@/lib/types';
@@ -28,10 +28,11 @@ export function ZoneStatusTable() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[100px]">Zone</TableHead>
+                        <TableHead>Zone</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Risk Level</TableHead>
-                        <TableHead>Last Anomaly</TableHead>
+                        <TableHead>Anomaly</TableHead>
+                        <TableHead>Description</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -41,6 +42,7 @@ export function ZoneStatusTable() {
                         const status = latestAlert ? 'Alert' : 'Monitoring...';
                         const risk = latestAlert ? latestAlert.riskLevel : 'Normal';
                         const anomaly = latestAlert ? latestAlert.type : 'None';
+                        const description = latestAlert ? latestAlert.description : 'No issues detected.';
                         const badgeColor = riskColorMap[risk as keyof typeof riskColorMap] || 'bg-gray-500';
 
                         return (
@@ -52,8 +54,9 @@ export function ZoneStatusTable() {
                                         <span className='capitalize'>{risk}</span>
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="max-w-[200px] truncate" title={latestAlert?.description}>
-                                    {anomaly}
+                                <TableCell>{anomaly}</TableCell>
+                                <TableCell className="max-w-[250px] truncate" title={description}>
+                                    {description}
                                 </TableCell>
                             </TableRow>
                         );
