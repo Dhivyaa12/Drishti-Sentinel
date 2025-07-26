@@ -1,38 +1,45 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
 
-const useLocation = () => {
-  const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
-  const [error, setError] = useState<string | null>(null);
+interface LocationState {
+  location: GeolocationCoordinates | null;
+  error: string | null;
+}
+
+const useLocation = (): LocationState => {
+  const [locationState, setLocationState] = useState<LocationState>({
+    location: null,
+    error: null,
+  });
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
+      setLocationState(prevState => ({
+        ...prevState,
+        error: 'Geolocation is not supported by your browser.',
+      }));
       return;
     }
 
-    const handleSuccess = (position: GeolocationPosition) => {
-      setLocation(position.coords);
+    const onSuccess = (position: GeolocationPosition) => {
+      setLocationState({
+        location: position.coords,
+        error: null,
+      });
     };
 
-    const handleError = (error: GeolocationPositionError) => {
-      setError(error.message);
+    const onError = (error: GeolocationPositionError) => {
+      setLocationState(prevState => ({
+        ...prevState,
+        error: error.message,
+      }));
     };
 
-    const watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0,
-    });
-
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-    };
+    navigator.geolocation.getCurrentPosition(onSuccess, onError);
   }, []);
 
-  return { location, error };
+  return locationState;
 };
 
 export default useLocation;
