@@ -130,8 +130,8 @@ export const DrishtiSentinelProvider = ({
       ...alertData,
       id: `alert-${Date.now()}-${Math.random()}`,
       timestamp: new Date().toISOString(),
-      coordinates: zoneCoordinates[alertData.zoneId],
-      location: location ? `${location.latitude}, ${location.longitude}` : alertData.location,
+      coordinates: zoneCoordinates[alertData.zoneId] || (location || undefined),
+      location: alertData.location || (location ? `${location.latitude}, ${location.longitude}`: 'Unknown'),
     };
     setAlerts(prev => [newAlert, ...prev].slice(0, 50));
   }, [location]);

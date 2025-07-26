@@ -46,3 +46,37 @@ export type FaceMatchResult = {
   zoneId?: string;
   zoneName?: string;
 };
+
+export type AnomalyType = 
+    | "panic_run"
+    | "loitering"
+    | "crowd_gathering"
+    | "fall_detected"
+    | "fight"
+    | "reverse_flow"
+    | "entry_breach"
+    | "object_abandon"
+    | "overcrowd"
+    | "rapid_dispersion"
+    | "hand_cover_face"
+    | "cover_eyes"
+    | "fire"
+    | "building_destruction"
+    | "flood"
+    | "other"
+    | "none";
+
+export interface AnalyzeCameraFeedInput {
+    photoDataUri: string;
+    zone: string;
+}
+
+export interface AnalyzeCameraFeedOutput {
+    anomalyType: AnomalyType;
+    description: string;
+    riskLevel: RiskLevel;
+    isAnomaly: boolean;
+    fireDetected: boolean;
+    dominantEmotion: string;
+    isStrongEmotion: boolean;
+}
