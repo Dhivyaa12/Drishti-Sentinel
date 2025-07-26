@@ -2,7 +2,7 @@
 
 import { BellRing, ListVideo } from 'lucide-react';
 import { AlertsPanel } from './AlertsPanel';
-import { ZoneStatusPanel } from './ZoneStatusPanel';
+import { ZoneStatusTable } from './zone-status-table';
 import { Separator } from '@/components/ui/separator';
 
 export function SecurityControlPanel() {
@@ -16,7 +16,7 @@ export function SecurityControlPanel() {
           Aggregated status and alerts from all zones.
         </p>
       </div>
-      <ZoneStatusPanel />
+      <ZoneStatusTable />
       <Separator />
       <AlertsPanel />
     </div>
