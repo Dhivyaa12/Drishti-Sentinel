@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Loader2, Monitor, ScanSearch, Users, Volume2, VolumeX, AlertTriangle, ShieldCheck, Info, ScanFace } from 'lucide-react';
+import { Loader2, Monitor, ScanSearch, Users, Volume2, VolumeX, ScanFace } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { urlToDataUri, captureVideoFrame } from '@/lib/utils';
 import { detectAnomalies } from '@/ai/flows/detect-anomalies';
@@ -15,12 +15,11 @@ import { FaceMatching } from './FaceMatching';
 import { analyzeCrowdDensity } from '@/ai/flows/crowd-density-analysis';
 import { faceMatch } from '@/ai/flows/face-matching';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
 
 export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
-  const { getZoneById, toggleAlarmSilence, addAlert, getLatestAlertForZone } = useDrishti();
+  const { getZoneById, toggleAlarmSilence, addAlert } = useDrishti();
   const zone = getZoneById(zoneId);
   const { toast } = useToast();
   
@@ -32,8 +31,6 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
     crowd: false,
     face: false,
   });
-  
-  const latestAlert = getLatestAlertForZone(zoneId);
 
   useEffect(() => {
     if (zone?.type !== 'webcam') return;
@@ -78,8 +75,6 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
       return captureVideoFrame(videoRef.current);
     }
     if (zone.type === 'ip-camera' && zone.ipAddress) {
-      // This is a simplified approach. In a real scenario, you might need
-      // a backend proxy to fetch the image to avoid CORS issues.
       return urlToDataUri(zone.ipAddress);
     }
     return urlToDataUri(placeholderImageUrl);
@@ -111,13 +106,6 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
       handleProcessing('anomaly', false);
     }
   };
-  
-  const StatusIcon = latestAlert ? (latestAlert.riskLevel === 'high' || latestAlert.riskLevel === 'critical' ? AlertTriangle : Info) : ShieldCheck;
-  const statusColor = latestAlert ? (latestAlert.riskLevel === 'high' || latestAlert.riskLevel === 'critical' ? 'text-destructive' : 'text-yellow-400') : 'text-green-500';
-  const statusText = latestAlert ? latestAlert.type : 'Normal';
-  const riskText = latestAlert ? latestAlert.riskLevel : 'None';
-  const descriptionText = latestAlert ? latestAlert.description : 'No issues detected.';
-
 
   return (
     <Card className="flex flex-col">
@@ -174,34 +162,6 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
             </div>
           )}
         </div>
-         <Card>
-          <CardHeader className='p-2'>
-            <CardTitle className='text-sm'>Zone Status</CardTitle>
-          </CardHeader>
-          <CardContent className='p-0'>
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Risk Level</TableHead>
-                        <TableHead>Description</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow>
-                        <TableCell className='font-medium'>
-                            <div className={`flex items-center gap-2 ${statusColor}`}>
-                                <StatusIcon className="h-4 w-4" />
-                                <span>{statusText}</span>
-                            </div>
-                        </TableCell>
-                         <TableCell><span className='capitalize'>{riskText}</span></TableCell>
-                        <TableCell>{descriptionText}</TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
       </CardContent>
       <CardFooter>
         <Tabs defaultValue="scan" className="w-full">
