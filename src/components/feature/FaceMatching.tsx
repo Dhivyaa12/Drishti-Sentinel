@@ -38,7 +38,7 @@ export function FaceMatching() {
 
    const getFrameAsDataUri = async (zoneId: string): Promise<string> => {
     const zone = zones.find(z => z.id === zoneId);
-    if (!zone) return urlToDataUri(placeholderImageUrl);
+    if (!zone) return await urlToDataUri(placeholderImageUrl);
 
     if (zone.type === 'webcam') {
       const videoElement = document.querySelector(`[data-zone-id="${zoneId}"] video`) as HTMLVideoElement;
@@ -47,9 +47,9 @@ export function FaceMatching() {
       }
     }
     if (zone.type === 'ip-camera' && zone.ipAddress) {
-      return urlToDataUri(zone.ipAddress);
+      return await urlToDataUri(zone.ipAddress);
     }
-    return urlToDataUri(placeholderImageUrl);
+    return await urlToDataUri(placeholderImageUrl);
   }
 
   const handleAnalysis = async () => {
@@ -71,7 +71,7 @@ export function FaceMatching() {
       
       const bestMatch = results.reduce((prev, current) => {
         return (prev.confidenceScore || 0) > (current.confidenceScore || 0) ? prev : current;
-      });
+      }, results[0]);
 
       setResult({ ...bestMatch, personPhotoDataUri: personPhoto });
 
@@ -128,15 +128,16 @@ export function FaceMatching() {
       {result && (
         <Card>
             <CardContent className="p-4 space-y-4">
-                <div className={`flex items-center gap-2 font-semibold text-lg ${result.matchFound ? 'text-green-500' : 'text-red-500'}`}>
+                <div className={`flex items-center gap-2 font-semibold text-lg ${result.matchFound ? 'text-accent' : 'text-destructive'}`}>
                     {result.matchFound ? <UserCheck /> : <UserX />}
                     <span>{result.matchFound ? 'Match Found' : 'No Match Found'}</span>
                 </div>
 
-                {result.matchFound && (
-                     <div className="text-sm">
-                        <p>Confidence: <span className="font-bold text-foreground">{((result.confidenceScore || 0) * 100).toFixed(0)}%</span></p>
-                        <p>Timestamp: <span className="font-mono text-foreground">{new Date(result.timestamp!).toLocaleString()}</span></p>
+                {result.matchFound && result.timestamp && (
+                     <div className="text-sm space-y-1">
+                        <div className="flex justify-between"><span>Zone:</span> <span className="font-bold text-foreground">{(result as any).zoneName}</span></div>
+                        <div className="flex justify-between"><span>Confidence:</span> <span className="font-bold text-foreground">{((result.confidenceScore || 0) * 100).toFixed(0)}%</span></div>
+                        <div className="flex justify-between"><span>Timestamp:</span> <span className="font-mono text-foreground">{new Date(result.timestamp).toLocaleString()}</span></div>
                      </div>
                 )}
                 <Separator />

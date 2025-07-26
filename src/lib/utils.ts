@@ -6,18 +6,24 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export async function urlToDataUri(url: string): Promise<string> {
-    // A CORS proxy might be needed for client-side fetches to external URLs.
-    // For simplicity, we assume direct access or a proxy is configured.
+    // Using a simple proxy to bypass CORS issues for development.
+    // In a production environment, you might need a more robust solution.
+    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
     try {
-        const response = await fetch(url);
+        const response = await fetch(proxyUrl + url);
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error(`HTTP error! status: ${response.status} for url: ${url}`);
+             // Fallback to placeholder if fetch fails
+            return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
         }
         const blob = await response.blob();
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
+            reader.onerror = (error) => {
+                console.error("FileReader error:", error);
+                reject(error);
+            };
             reader.readAsDataURL(blob);
         });
     } catch (error) {

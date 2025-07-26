@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CrowdDensityAnalysis } from './CrowdDensityAnalysis';
 import { FaceMatching } from './FaceMatching';
-import { ShieldCheck, ListVideo, BellRing, Users, ScanFace } from 'lucide-react';
+import { ShieldCheck, ListVideo, BellRing, Users, ScanFace, SlidersHorizontal } from 'lucide-react';
 
 export function SecurityControlPanel() {
   return (
@@ -19,7 +19,7 @@ export function SecurityControlPanel() {
             <p className="text-sm text-muted-foreground">Central hub for alerts and analysis.</p>
         </div>
         
-        <Tabs defaultValue="status" className="flex-1 flex flex-col">
+        <Tabs defaultValue="alerts" className="flex-1 flex flex-col">
           <div className="px-4 pt-4">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="status">
@@ -31,7 +31,7 @@ export function SecurityControlPanel() {
                     Alerts
                 </TabsTrigger>
                 <TabsTrigger value="tools">
-                    <Users className="mr-2 h-4 w-4"/>
+                    <SlidersHorizontal className="mr-2 h-4 w-4"/>
                     Tools
                 </TabsTrigger>
             </TabsList>

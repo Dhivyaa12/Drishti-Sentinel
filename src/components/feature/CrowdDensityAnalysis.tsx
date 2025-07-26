@@ -25,7 +25,7 @@ export function CrowdDensityAnalysis() {
 
   const getFrameAsDataUri = async (zoneId: string): Promise<string> => {
     const zone = zones.find(z => z.id === zoneId);
-    if (!zone) return urlToDataUri(placeholderImageUrl);
+    if (!zone) return await urlToDataUri(placeholderImageUrl);
 
     if (zone.type === 'webcam') {
       const videoElement = document.querySelector(`[data-zone-id="${zoneId}"] video`) as HTMLVideoElement;
@@ -36,9 +36,9 @@ export function CrowdDensityAnalysis() {
     if (zone.type === 'ip-camera' && zone.ipAddress) {
       // Note: This fetches the image again. For real-time streams, this is correct.
       // If it were a static image, we could optimize.
-      return urlToDataUri(zone.ipAddress);
+      return await urlToDataUri(zone.ipAddress);
     }
-    return urlToDataUri(placeholderImageUrl);
+    return await urlToDataUri(placeholderImageUrl);
   }
 
   const handleAnalysis = async () => {
@@ -51,12 +51,12 @@ export function CrowdDensityAnalysis() {
     if (!zone) return;
 
     setIsProcessing(true);
+    setResult(null);
     toast({ title: 'Analyzing crowd density...', description: `Scanning ${zone.name}.` });
     try {
       const dataUri = await getFrameAsDataUri(selectedZoneId);
       const analysisResult = await analyzeCrowdDensity({ photoDataUri: dataUri, zoneDescription: zone.name });
       
-      // Determine density level based on head count
       let densityLevel: 'low' | 'medium' | 'high';
       if (analysisResult.headCount <= 2) {
         densityLevel = 'low';
@@ -68,14 +68,13 @@ export function CrowdDensityAnalysis() {
 
       const newResult = { ...analysisResult, densityLevel, timestamp: new Date().toISOString() };
 
-
       setResult(newResult);
       setHistory(prev => [...prev, newResult].slice(-10)); // Keep last 10 results
       
       addAlert({
         type: 'Crowd Report',
         description: `Density is ${newResult.densityLevel} with ${newResult.headCount} people detected.`,
-        riskLevel: newResult.densityLevel === 'high' ? 'medium' : 'low',
+        riskLevel: newResult.densityLevel === 'high' ? 'high' : newResult.densityLevel === 'medium' ? 'medium' : 'low',
         zoneId: zone.id,
         location: zone.name,
       });
@@ -132,11 +131,16 @@ export function CrowdDensityAnalysis() {
       {history.length > 0 && (
         <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={history.map(h => ({ name: new Date(h.timestamp).toLocaleTimeString(), count: h.headCount }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip />
+                <BarChart data={history.map(h => ({ name: new Date(h.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), count: h.headCount }))}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip
+                    contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        borderColor: 'hsl(var(--border))'
+                    }}
+                />
                 <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
             </ResponsiveContainer>

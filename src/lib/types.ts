@@ -21,7 +21,7 @@ export interface Zone {
 
 export type CrowdDensityAnalysisResult = {
   headCount: number;
-  densityLevel: string;
+  densityLevel: 'low' | 'medium' | 'high';
   report: string;
   timestamp: string;
 };
@@ -32,4 +32,6 @@ export type FaceMatchResult = {
   timestamp?: string;
   frameDataUri?: string;
   personPhotoDataUri?: string;
+  zoneId?: string;
+  zoneName?: string;
 };
