@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
 import { faceMatch } from '@/ai/flows/face-matching';
 import { captureVideoFrame, urlToDataUri } from '@/lib/utils';
+import { Progress } from '../ui/progress';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
 
@@ -59,6 +60,7 @@ export function FaceMatching() {
     }
     
     setIsProcessing(true);
+    setResult(null);
     toast({ title: 'Scanning all zones for face match...' });
     
     try {
@@ -71,13 +73,13 @@ export function FaceMatching() {
       
       const bestMatch = results.reduce((prev, current) => {
         return (prev.confidenceScore || 0) > (current.confidenceScore || 0) ? prev : current;
-      }, results[0]);
+      }, { confidenceScore: -1 } as any);
 
       setResult({ ...bestMatch, personPhotoDataUri: personPhoto });
 
-      if (bestMatch.matchFound) {
+      if (bestMatch.matchFound && bestMatch.confidenceScore > 0.75) {
         toast({
-          title: `Match Found in ${bestMatch.zoneName}!`,
+          title: `High-Confidence Match Found in ${bestMatch.zoneName}!`,
           description: `Confidence: ${((bestMatch.confidenceScore || 0) * 100).toFixed(0)}%`,
         });
         addAlert({
@@ -86,6 +88,11 @@ export function FaceMatching() {
           riskLevel: 'high',
           zoneId: bestMatch.zoneId,
           location: bestMatch.zoneName,
+        });
+      } else if (bestMatch.matchFound) {
+         toast({
+          title: `Potential Match Found in ${bestMatch.zoneName}`,
+          description: `Confidence: ${((bestMatch.confidenceScore || 0) * 100).toFixed(0)}%`,
         });
       } else {
         toast({ title: 'No Match Found', description: 'The person of interest was not detected in any zone.' });
@@ -134,23 +141,29 @@ export function FaceMatching() {
                 </div>
 
                 {result.matchFound && result.timestamp && (
-                     <div className="text-sm space-y-1">
-                        <div className="flex justify-between"><span>Zone:</span> <span className="font-bold text-foreground">{(result as any).zoneName}</span></div>
-                        <div className="flex justify-between"><span>Confidence:</span> <span className="font-bold text-foreground">{((result.confidenceScore || 0) * 100).toFixed(0)}%</span></div>
-                        <div className="flex justify-between"><span>Timestamp:</span> <span className="font-mono text-foreground">{new Date(result.timestamp).toLocaleString()}</span></div>
+                     <div className="text-sm space-y-2">
+                        <div className="flex justify-between items-center"><span>Zone:</span> <span className="font-bold text-foreground">{result.zoneName}</span></div>
+                        <div className="flex justify-between items-center"><span>Timestamp:</span> <span className="font-mono text-foreground">{new Date(result.timestamp).toLocaleString()}</span></div>
+                        <div>
+                            <Label className="text-xs">Confidence</Label>
+                            <div className="flex items-center gap-2">
+                                <Progress value={(result.confidenceScore || 0) * 100} className="w-full h-2" />
+                                <span className="font-bold text-foreground text-xs w-12 text-right">{((result.confidenceScore || 0) * 100).toFixed(0)}%</span>
+                            </div>
+                        </div>
                      </div>
                 )}
                 <Separator />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
-                        <Label className="text-xs">Person of Interest</Label>
-                        <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted">
+                        <Label className="text-xs text-muted-foreground">Person of Interest</Label>
+                        <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted border">
                             {result.personPhotoDataUri && <Image src={result.personPhotoDataUri} alt="Person of Interest" layout="fill" objectFit="cover" />}
                         </div>
                     </div>
                      <div>
-                        <Label className="text-xs">Matched Frame</Label>
-                        <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted">
+                        <Label className="text-xs text-muted-foreground">{result.matchFound ? `Matched Frame from ${result.zoneName}` : "Best Candidate Frame"}</Label>
+                        <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted border">
                             {result.frameDataUri && <Image src={result.frameDataUri} alt="Matched Frame" layout="fill" objectFit="cover" />}
                         </div>
                     </div>

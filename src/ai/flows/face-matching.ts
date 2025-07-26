@@ -72,6 +72,11 @@ const faceMatchFlow = ai.defineFlow(
     //add the timestamp to the output
     if (output?.matchFound) {
       output.timestamp = new Date().toISOString();
+    } else {
+        // ensure timestamp is not present if no match
+        if (output) {
+            delete output.timestamp;
+        }
     }
     return output!;
   }
