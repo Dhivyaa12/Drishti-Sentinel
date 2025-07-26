@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { CrowdDensityAnalysisResult } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { analyzeCrowdDensity } from '@/ai/flows/crowd-density-analysis';
 import { captureVideoFrame, urlToDataUri } from '@/lib/utils';
 import { Label } from '../ui/label';
+import { Separator } from '../ui/separator';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
 
@@ -66,7 +68,7 @@ export function CrowdDensityAnalysis() {
         densityLevel = 'high';
       }
 
-      const newResult = { ...analysisResult, densityLevel, timestamp: new Date().toISOString() };
+      const newResult = { ...analysisResult, densityLevel, timestamp: new Date().toISOString(), frameDataUri: dataUri };
 
       setResult(newResult);
       setHistory(prev => [...prev, newResult].slice(-10)); // Keep last 10 results
@@ -120,31 +122,44 @@ export function CrowdDensityAnalysis() {
           <CardHeader>
             <CardTitle className="text-base">Latest Analysis</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <div className="flex justify-between"><span>Head Count:</span> <span className="font-bold">{result.headCount}</span></div>
-            <div className="flex justify-between"><span>Density Level:</span> <span className="font-bold capitalize">{result.densityLevel}</span></div>
+          <CardContent className="text-sm space-y-4">
+            {result.frameDataUri && (
+                <div className="aspect-video relative rounded-md overflow-hidden bg-muted border">
+                    <Image src={result.frameDataUri} alt="Analyzed frame" layout="fill" objectFit="cover" />
+                </div>
+            )}
+            <div className="space-y-2">
+                <div className="flex justify-between"><span>Head Count:</span> <span className="font-bold">{result.headCount}</span></div>
+                <div className="flex justify-between"><span>Density Level:</span> <span className="font-bold capitalize">{result.densityLevel}</span></div>
+            </div>
+            <Separator />
             <p className="text-muted-foreground pt-2">{result.report}</p>
           </CardContent>
         </Card>
       )}
 
       {history.length > 0 && (
-        <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={history.map(h => ({ name: new Date(h.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), count: h.headCount }))}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip
-                    contentStyle={{
-                        backgroundColor: 'hsl(var(--background))',
-                        borderColor: 'hsl(var(--border))'
-                    }}
-                />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base">Density History (Last 10)</CardTitle>
+            </CardHeader>
+            <CardContent className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={history.map(h => ({ name: new Date(h.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), count: h.headCount }))}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip
+                        contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            borderColor: 'hsl(var(--border))'
+                        }}
+                    />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
+            </CardContent>
+        </Card>
       )}
     </div>
   );

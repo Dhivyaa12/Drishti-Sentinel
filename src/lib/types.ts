@@ -24,6 +24,7 @@ export type CrowdDensityAnalysisResult = {
   densityLevel: 'low' | 'medium' | 'high';
   report: string;
   timestamp: string;
+  frameDataUri?: string;
 };
 
 export type FaceMatchResult = {
