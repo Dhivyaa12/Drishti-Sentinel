@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import type { Alert, Zone, RiskLevel, ZoneStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { makeEmergencyCall } from '@/ai/flows/emergency-call';
+import useLocation from '@/hooks/use-location';
 
 interface DrishtiSentinelContextType {
   alerts: Alert[];
@@ -60,6 +61,7 @@ export const DrishtiSentinelProvider = ({
   const [buzzerOnForZone, setBuzzerZone] = useState<string | null>(null);
   const { toast } = useToast();
   const lastHighRiskAlertId = useRef<string | null>(null);
+  const { location } = useLocation();
 
   const [zoneStatuses, setZoneStatuses] = useState<ZoneStatus[]>(
     initialZones.map(zone => ({
@@ -82,6 +84,25 @@ export const DrishtiSentinelProvider = ({
   
   const originalIpAddresses = useRef(new Map(initialZones.map(z => [z.id, z.ipAddress])));
 
+  const handleEmergencyCall = useCallback((eventDescription: string) => {
+    makeEmergencyCall({ eventDescription })
+      .then(response => {
+        console.log('Emergency call initiated:', response.status);
+        toast({
+          title: 'Emergency Call Service',
+          description: response.status,
+        });
+      })
+      .catch(err => {
+        console.error('Failed to initiate emergency call', err);
+        toast({
+          variant: 'destructive',
+          title: 'Emergency Call Failed',
+          description: 'Could not contact emergency services.',
+        });
+      });
+  }, [toast]);
+
   useEffect(() => {
     const latestAlert = alerts[0];
     if (latestAlert && latestAlert.id !== lastHighRiskAlertId.current) {
@@ -97,35 +118,23 @@ export const DrishtiSentinelProvider = ({
            }
         }
       
-        makeEmergencyCall({
-            eventDescription: `High risk event: ${latestAlert.type} detected in ${zone?.name || 'an unknown zone'}. Description: ${latestAlert.description}`
-        }).then(response => {
-            console.log('Emergency call initiated:', response.status);
-            toast({
-                title: 'Emergency Call Service',
-                description: response.status,
-            });
-        }).catch(err => {
-          console.error('Failed to initiate emergency call', err);
-          toast({
-              variant: 'destructive',
-              title: 'Emergency Call Failed',
-              description: 'Could not contact emergency services.',
-          });
-        });
+        handleEmergencyCall(
+          `High risk event: ${latestAlert.type} detected in ${zone?.name || 'an unknown zone'}. Description: ${latestAlert.description}`
+        );
       }
     }
-  }, [alerts, zones, toast]);
+  }, [alerts, zones, handleEmergencyCall]);
 
   const addAlert = useCallback((alertData: Omit<Alert, 'id' | 'timestamp'>) => {
     const newAlert: Alert = {
       ...alertData,
       id: `alert-${Date.now()}-${Math.random()}`,
       timestamp: new Date().toISOString(),
-      coordinates: zoneCoordinates[alertData.zoneId], // Add mock coordinates
+      coordinates: zoneCoordinates[alertData.zoneId],
+      location: location ? `${location.latitude}, ${location.longitude}` : alertData.location,
     };
-    setAlerts(prev => [newAlert, ...prev].slice(0, 50)); // Keep last 50 alerts
-  }, []);
+    setAlerts(prev => [newAlert, ...prev].slice(0, 50));
+  }, [location]);
 
   const toggleAlarmSilence = useCallback((zoneId: string) => {
     setZones(prev =>
@@ -159,9 +168,10 @@ export const DrishtiSentinelProvider = ({
   }, [alerts]);
 
   const handleSos = useCallback(() => {
+    const description = 'Manual SOS button activated. Immediate assistance required.';
     addAlert({
       type: 'SOS Signal',
-      description: 'Manual SOS button activated. Immediate assistance required.',
+      description,
       riskLevel: 'critical' as RiskLevel,
       zoneId: 'all-zones',
       location: 'Command Center',
@@ -172,9 +182,9 @@ export const DrishtiSentinelProvider = ({
       title: 'SOS ACTIVATED',
       description: 'Emergency alert broadcasted to all units.',
     });
-    // Activate buzzer for all zones or a general one
     setBuzzerZone('all-zones');
-  }, [addAlert, toast]);
+    handleEmergencyCall(description);
+  }, [addAlert, toast, handleEmergencyCall]);
 
   const setProcessing = useCallback((zoneId: string, status: boolean) => {
     setProcessingZones(prev => {
