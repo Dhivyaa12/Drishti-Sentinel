@@ -9,20 +9,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2, Users } from 'lucide-react';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { analyzeCrowdDensity } from '@/ai/flows/crowd-density-analysis';
 import { captureVideoFrame, urlToDataUri } from '@/lib/utils';
-import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
 
+type ZoneAnalysisResult = {
+    zoneId: string;
+    zoneName: string;
+} & CrowdDensityAnalysisResult;
+
 export function CrowdDensityAnalysis() {
   const { zones, addAlert } = useDrishti();
-  const [selectedZoneId, setSelectedZoneId] = useState<string | undefined>(zones[0]?.id);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<CrowdDensityAnalysisResult | null>(null);
-  const [history, setHistory] = useState<CrowdDensityAnalysisResult[]>([]);
+  const [results, setResults] = useState<ZoneAnalysisResult[]>([]);
+  const [history, setHistory] = useState<ZoneAnalysisResult[]>([]);
   const { toast } = useToast();
 
   const getFrameAsDataUri = async (zoneId: string): Promise<string> => {
@@ -36,45 +38,46 @@ export function CrowdDensityAnalysis() {
       }
     }
     if (zone.type === 'ip-camera' && zone.ipAddress) {
-      // Note: This fetches the image again. For real-time streams, this is correct.
-      // If it were a static image, we could optimize.
       return await urlToDataUri(zone.ipAddress);
     }
     return await urlToDataUri(placeholderImageUrl);
   }
 
   const handleAnalysis = async () => {
-    if (!selectedZoneId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please select a zone to analyze.' });
-        return;
-    }
-    
-    const zone = zones.find(z => z.id === selectedZoneId);
-    if (!zone) return;
-
     setIsProcessing(true);
-    setResult(null);
-    toast({ title: 'Analyzing crowd density...', description: `Scanning ${zone.name}.` });
+    setResults([]);
+    toast({ title: 'Analyzing crowd density for all zones...' });
     try {
-      const dataUri = await getFrameAsDataUri(selectedZoneId);
-      const analysisResult = await analyzeCrowdDensity({ photoDataUri: dataUri, zoneDescription: zone.name });
-      
-      const newResult = { ...analysisResult, timestamp: new Date().toISOString(), frameDataUri: dataUri };
-
-      setResult(newResult);
-      setHistory(prev => [...prev, newResult].slice(-10)); // Keep last 10 results
-      
-      if (newResult.densityLevel === 'high') {
-         addAlert({
-          type: 'Crowd Report',
-          description: `High density detected: ${newResult.headCount} people in ${zone.name}.`,
-          riskLevel: 'high',
+      const analysisPromises = zones.map(async (zone) => {
+        const dataUri = await getFrameAsDataUri(zone.id);
+        const analysisResult = await analyzeCrowdDensity({ photoDataUri: dataUri, zoneDescription: zone.name });
+        return {
+          ...analysisResult,
           zoneId: zone.id,
-          location: zone.name,
-        });
-      }
+          zoneName: zone.name,
+          timestamp: new Date().toISOString(),
+          frameDataUri: dataUri
+        };
+      });
 
-      toast({ title: 'Crowd Analysis Complete', description: `Found ${newResult.headCount} people in ${zone.name}.` });
+      const analysisResults = await Promise.all(analysisPromises);
+      
+      setResults(analysisResults);
+      setHistory(prev => [...analysisResults, ...prev].slice(-20));
+
+      analysisResults.forEach(result => {
+        if (result.densityLevel === 'high') {
+           addAlert({
+            type: 'Crowd Report',
+            description: `High density detected: ${result.headCount} people in ${result.zoneName}.`,
+            riskLevel: 'high',
+            zoneId: result.zoneId,
+            location: result.zoneName,
+          });
+        }
+      });
+
+      toast({ title: 'Crowd Analysis Complete', description: `Scanned ${zones.length} zones.` });
     } catch (error) {
       console.error('Crowd density analysis failed:', error);
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to analyze crowd density.' });
@@ -83,50 +86,50 @@ export function CrowdDensityAnalysis() {
     }
   };
 
+  const chartData = zones.map(zone => {
+    const latestResultForZone = history.find(h => h.zoneId === zone.id);
+    return {
+        name: zone.name,
+        count: latestResultForZone?.headCount || 0,
+    }
+  });
+
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Users className="h-5 w-5" />
         <h4 className="font-semibold">Crowd Density Analysis</h4>
       </div>
-      <p className="text-sm text-muted-foreground">Analyze head counts in live footage to assess crowd levels.</p>
+      <p className="text-sm text-muted-foreground">Analyze head counts in all live feeds simultaneously to assess crowd levels.</p>
       
-      <div className="space-y-2">
-        <Label>Select Zone</Label>
-        <Select value={selectedZoneId} onValueChange={setSelectedZoneId}>
-            <SelectTrigger>
-                <SelectValue placeholder="Select a zone" />
-            </SelectTrigger>
-            <SelectContent>
-                {zones.map(zone => (
-                    <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-      </div>
-      
-      <Button className="w-full" onClick={handleAnalysis} disabled={isProcessing || !selectedZoneId}>
+      <Button className="w-full" onClick={handleAnalysis} disabled={isProcessing}>
         {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Analyze Density
+        Analyze All Zones
       </Button>
 
-      {result && (
+      {results.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Latest Analysis</CardTitle>
+            <CardTitle className="text-base">Analysis Results</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm space-y-4">
-            {result.frameDataUri && (
-                <div className="aspect-video relative rounded-md overflow-hidden bg-muted border">
-                    <Image src={result.frameDataUri} alt="Analyzed frame" layout="fill" objectFit="cover" />
+          <CardContent className="space-y-4">
+            {results.map(result => (
+                 <div key={result.zoneId} className="space-y-4 pt-4">
+                    <h5 className="font-semibold">{result.zoneName}</h5>
+                    {result.frameDataUri && (
+                        <div className="aspect-video relative rounded-md overflow-hidden bg-muted border">
+                            <Image src={result.frameDataUri} alt={`Analyzed frame from ${result.zoneName}`} layout="fill" objectFit="cover" />
+                        </div>
+                    )}
+                    <div className="text-sm space-y-2">
+                        <div className="flex justify-between"><span>Head Count:</span> <span className="font-bold">{result.headCount}</span></div>
+                        <div className="flex justify-between"><span>Density Level:</span> <span className="font-bold capitalize">{result.densityLevel}</span></div>
+                    </div>
+                    <p className="text-sm text-muted-foreground pt-2">{result.report}</p>
+                    <Separator />
                 </div>
-            )}
-            <div className="space-y-2">
-                <div className="flex justify-between"><span>Head Count:</span> <span className="font-bold">{result.headCount}</span></div>
-                <div className="flex justify-between"><span>Density Level:</span> <span className="font-bold capitalize">{result.densityLevel}</span></div>
-            </div>
-            <Separator />
-            <p className="text-muted-foreground pt-2">{result.report}</p>
+            ))}
           </CardContent>
         </Card>
       )}
@@ -134,21 +137,21 @@ export function CrowdDensityAnalysis() {
       {history.length > 0 && (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Density History (Last 10)</CardTitle>
+                <CardTitle className="text-base">Latest Headcount per Zone</CardTitle>
             </CardHeader>
             <CardContent className="h-40">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={history.map(h => ({ name: new Date(h.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), count: h.headCount }))}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <BarChart data={chartData} layout="vertical" margin={{ left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="name" fontSize={10} tickLine={false} axisLine={false} width={60} />
                     <Tooltip
                         contentStyle={{
                             backgroundColor: 'hsl(var(--background))',
                             borderColor: 'hsl(var(--border))'
                         }}
                     />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>
