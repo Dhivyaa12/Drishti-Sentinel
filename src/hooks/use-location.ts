@@ -1,6 +1,8 @@
-"use client";
+
+'use client';
 
 import { useState, useEffect } from 'react';
+import { useToast } from './use-toast';
 
 interface LocationState {
   location: GeolocationCoordinates | null;
@@ -8,38 +10,62 @@ interface LocationState {
 }
 
 const useLocation = (): LocationState => {
-  const [locationState, setLocationState] = useState<LocationState>({
-    location: null,
-    error: null,
-  });
+  const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setLocationState(prevState => ({
-        ...prevState,
-        error: 'Geolocation is not supported by your browser.',
-      }));
+      const msg = 'Geolocation is not supported by your browser.';
+      setError(msg);
+       toast({
+          variant: 'destructive',
+          title: 'Location Error',
+          description: msg,
+        });
       return;
     }
 
     const onSuccess = (position: GeolocationPosition) => {
-      setLocationState({
-        location: position.coords,
-        error: null,
+      setLocation(position.coords);
+      setError(null);
+    };
+
+    const onError = (err: GeolocationPositionError) => {
+       let message = 'An unknown error occurred.';
+      switch (err.code) {
+        case err.PERMISSION_DENIED:
+          message = 'Location access denied. Please enable it in your browser settings.';
+          break;
+        case err.POSITION_UNAVAILABLE:
+          message = 'Location information is unavailable.';
+          break;
+        case err.TIMEOUT:
+          message = 'The request to get user location timed out.';
+          break;
+      }
+      setError(message);
+      toast({
+        variant: 'destructive',
+        title: 'Location Error',
+        description: message,
       });
     };
 
-    const onError = (error: GeolocationPositionError) => {
-      setLocationState(prevState => ({
-        ...prevState,
-        error: error.message,
-      }));
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
     };
 
-    navigator.geolocation.getCurrentPosition(onSuccess, onError);
-  }, []);
+    const watchId = navigator.geolocation.watchPosition(onSuccess, onError, options);
 
-  return locationState;
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [toast]);
+
+  return { location, error };
 };
 
 export default useLocation;
