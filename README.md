@@ -2,7 +2,7 @@
 
 Drishti Sentinel is an advanced, real-time security monitoring application built with Next.js and powered by Google's Generative AI. It provides a centralized dashboard for monitoring multiple camera feeds, detecting security threats, and managing alerts.
 
-# Website link: https://drishti-sentinel-ai.netlify.app/
+Website link: https://drishti-sentinel-ai.netlify.app/
 
 ## Project Workflow
 
