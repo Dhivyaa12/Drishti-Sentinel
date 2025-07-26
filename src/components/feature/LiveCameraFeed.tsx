@@ -4,16 +4,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Loader2, Monitor, ScanSearch, Users, Volume2, VolumeX, ScanFace } from 'lucide-react';
+import { Loader2, Monitor, ScanSearch, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { urlToDataUri, captureVideoFrame } from '@/lib/utils';
 import { detectAnomalies } from '@/ai/flows/detect-anomalies';
-import { CrowdDensityAnalysis } from './CrowdDensityAnalysis';
-import { FaceMatching } from './FaceMatching';
-import { analyzeCrowdDensity } from '@/ai/flows/crowd-density-analysis';
-import { faceMatch } from '@/ai/flows/face-matching';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
@@ -25,12 +20,7 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-
-  const [isProcessing, setIsProcessing] = useState<Record<string, boolean>>({
-    anomaly: false,
-    crowd: false,
-    face: false,
-  });
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (zone?.type !== 'webcam') return;
@@ -66,10 +56,6 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
 
   if (!zone) return null;
 
-  const handleProcessing = (task: string, value: boolean) => {
-    setIsProcessing(prev => ({ ...prev, [task]: value }));
-  };
-
   const getFrameAsDataUri = async (): Promise<string> => {
     if (zone.type === 'webcam' && videoRef.current) {
       return captureVideoFrame(videoRef.current);
@@ -81,7 +67,7 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
   }
 
   const handleAnomalyDetection = async () => {
-    handleProcessing('anomaly', true);
+    setIsProcessing(true);
     toast({ title: 'Analyzing for anomalies...', description: `Scanning ${zone.name}.` });
     try {
       const dataUri = await getFrameAsDataUri();
@@ -103,12 +89,12 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
       console.error('Anomaly detection failed:', error);
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to analyze feed.' });
     } finally {
-      handleProcessing('anomaly', false);
+      setIsProcessing(false);
     }
   };
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col" data-zone-id={zone.id}>
       <CardHeader className="flex-row items-start justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">
@@ -153,7 +139,7 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
               data-ai-hint="security camera"
             />
           )}
-          {(isProcessing.anomaly || isProcessing.crowd || isProcessing.face) && (
+          {isProcessing && (
              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                 <div className="text-center text-white">
                     <Loader2 className="h-12 w-12 animate-spin mx-auto mb-2" />
@@ -163,56 +149,13 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
           )}
         </div>
       </CardContent>
-      <CardFooter>
-        <Tabs defaultValue="scan" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="scan"><ScanSearch className="w-4 h-4 mr-2"/>Scan</TabsTrigger>
-            <TabsTrigger value="crowd"><Users className="w-4 h-4 mr-2"/>Crowd</TabsTrigger>
-            <TabsTrigger value="face"><ScanFace className="w-4 h-4 mr-2"/>Face</TabsTrigger>
-          </TabsList>
-          <TabsContent value="scan" className="pt-4">
-            <p className="text-sm text-muted-foreground mb-4">Detect events like fire, loitering, fights, or panic in the current frame.</p>
-            <Button className="w-full" onClick={handleAnomalyDetection} disabled={isProcessing.anomaly}>
-              {isProcessing.anomaly && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      <CardFooter className="flex-col items-start">
+            <p className="text-sm text-muted-foreground mb-2">Detect events like fire, loitering, fights, or panic in the current frame.</p>
+            <Button className="w-full" onClick={handleAnomalyDetection} disabled={isProcessing}>
+              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <ScanSearch className="w-4 h-4 mr-2"/>
               Scan for Anomalies
             </Button>
-          </TabsContent>
-          <TabsContent value="crowd" className="pt-4">
-             <CrowdDensityAnalysis 
-                zone={zone}
-                isProcessing={isProcessing.crowd} 
-                onAnalyze={async () => {
-                    handleProcessing('crowd', true);
-                    const dataUri = await getFrameAsDataUri();
-                    const result = await analyzeCrowdDensity({ photoDataUri: dataUri, zoneDescription: zone.name });
-                    handleProcessing('crowd', false);
-                    return result;
-                }}
-             />
-          </TabsContent>
-          <TabsContent value="face" className="pt-4">
-            <FaceMatching 
-                zone={zone}
-                isProcessing={isProcessing.face}
-                onAnalyze={async (personPhotoDataUri) => {
-                    handleProcessing('face', true);
-                    const liveFeedDataUri = await getFrameAsDataUri();
-                    const result = await faceMatch({ personOfInterestPhotoDataUri, liveFeedDataUri });
-                    if(result.matchFound) {
-                        addAlert({
-                            type: 'Face Match',
-                            description: `Person of interest found with ${((result.confidenceScore || 0) * 100).toFixed(0)}% confidence.`,
-                            riskLevel: 'high',
-                            zoneId: zone.id,
-                            location: zone.name,
-                        });
-                    }
-                    handleProcessing('face', false);
-                    return { ...result, frameDataUri: liveFeedDataUri };
-                }}
-            />
-          </TabsContent>
-        </Tabs>
       </CardFooter>
     </Card>
   );
