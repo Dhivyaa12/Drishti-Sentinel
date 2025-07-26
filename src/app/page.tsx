@@ -10,8 +10,8 @@ import { Card } from '@/components/ui/card';
 import { AlertsPanel } from '@/components/feature/AlertsPanel';
 
 const zones = [
-  { id: 'zone-a', name: 'Zone A', type: 'webcam', alarmSilenced: false },
-  { id: 'zone-b', name: 'Zone B', type: 'ip-camera', alarmSilenced: false, ipAddress: 'http://192.168.137.161:8080/video' },
+  { id: 'zone-a', name: 'Zone A', type: 'webcam' as const, alarmSilenced: false, configurable: false },
+  { id: 'zone-b', name: 'Zone B', type: 'ip-camera' as const, alarmSilenced: false, ipAddress: 'http://192.168.137.161:8080/video', configurable: true },
 ];
 
 export default function Home() {

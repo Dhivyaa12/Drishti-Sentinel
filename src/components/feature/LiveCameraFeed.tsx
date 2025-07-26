@@ -10,11 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { urlToDataUri, captureVideoFrame } from '@/lib/utils';
 import { detectAnomalies } from '@/ai/flows/detect-anomalies';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '../ui/switch';
+import { Label } from '../ui/label';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
 
 export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
-  const { getZoneById, toggleAlarmSilence, addAlert } = useDrishti();
+  const { getZoneById, toggleAlarmSilence, addAlert, toggleZoneSource } = useDrishti();
   const zone = getZoneById(zoneId);
   const { toast } = useToast();
   
@@ -23,7 +25,14 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    if (zone?.type !== 'webcam') return;
+    if (zone?.type !== 'webcam') {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+        return;
+    };
 
     const getCameraPermission = async () => {
       try {
@@ -93,6 +102,12 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
     }
   };
 
+  const handleSourceToggle = (useIpCam: boolean) => {
+    toggleZoneSource(zone.id, useIpCam ? 'ip-camera' : 'webcam');
+  };
+  
+  const isIpCam = zone.type === 'ip-camera';
+
   return (
     <Card className="flex flex-col" data-zone-id={zone.id}>
       <CardHeader className="flex-row items-start justify-between">
@@ -113,7 +128,7 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4">
         <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted relative">
-          {zone.type === 'webcam' && (
+          {zone.type === 'webcam' ? (
             <>
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
               {hasCameraPermission === false && (
@@ -127,17 +142,19 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
                 </div>
               )}
             </>
-          )}
-          {zone.type === 'ip-camera' && zone.ipAddress && (
-            <Image
-              src={zone.ipAddress}
-              alt={`Live feed from ${zone.name}`}
-              layout="fill"
-              objectFit="cover"
-              priority
-              unoptimized // Required for IP camera streams
-              data-ai-hint="security camera"
-            />
+          ) : (
+             zone.ipAddress && (
+              <Image
+                src={zone.ipAddress}
+                alt={`Live feed from ${zone.name}`}
+                layout="fill"
+                objectFit="cover"
+                priority
+                unoptimized // Required for IP camera streams
+                data-ai-hint="security camera"
+                key={zone.ipAddress} // Force re-render on IP change
+              />
+            )
           )}
           {isProcessing && (
              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -151,7 +168,18 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
       </CardContent>
       <CardFooter>
         <div className="w-full space-y-2">
-            <p className="text-sm text-muted-foreground">Detect events like fire, loitering, or panic in the current frame.</p>
+            {zone.configurable && (
+              <div className="flex items-center justify-between">
+                <Label htmlFor={`ip-cam-switch-${zone.id}`} className="text-sm text-muted-foreground">Use IP Cam</Label>
+                <Switch
+                  id={`ip-cam-switch-${zone.id}`}
+                  checked={isIpCam}
+                  onCheckedChange={handleSourceToggle}
+                  aria-label="Toggle between IP camera and webcam"
+                />
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground pt-2">Detect events like fire, loitering, or panic in the current frame.</p>
             <Button className="w-full" onClick={handleAnomalyDetection} disabled={isProcessing}>
               {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <ScanSearch className="w-4 h-4 mr-2"/>

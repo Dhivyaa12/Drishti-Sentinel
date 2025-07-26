@@ -14,6 +14,7 @@ interface DrishtiSentinelContextType {
   getZoneById: (zoneId: string) => Zone | undefined;
   getLatestAlertForZone: (zoneId: string) => Alert | undefined;
   handleSos: () => void;
+  toggleZoneSource: (zoneId: string, newType: 'webcam' | 'ip-camera') => void;
 }
 
 const DrishtiSentinelContext = createContext<DrishtiSentinelContextType | undefined>(undefined);
@@ -30,6 +31,8 @@ export const DrishtiSentinelProvider = ({
   const { toast } = useToast();
   const lastPlayedAlertId = useRef<string | null>(null);
   const audioContextStarted = useRef(false);
+  
+  const originalIpAddresses = useRef(new Map(initialZones.map(z => [z.id, z.ipAddress])));
 
   const playAlarm = useCallback(() => {
     if (!audioContextStarted.current) {
@@ -90,6 +93,18 @@ export const DrishtiSentinelProvider = ({
       )
     );
   }, []);
+
+  const toggleZoneSource = useCallback((zoneId: string, newType: 'webcam' | 'ip-camera') => {
+    setZones(prev =>
+      prev.map(zone => {
+        if (zone.id === zoneId && zone.configurable) {
+          const ipAddress = newType === 'ip-camera' ? originalIpAddresses.current.get(zoneId) : undefined;
+          return { ...zone, type: newType, ipAddress };
+        }
+        return zone;
+      })
+    );
+  }, []);
   
   const getZoneById = useCallback((zoneId: string) => {
     return zones.find(zone => zone.id === zoneId);
@@ -118,7 +133,7 @@ export const DrishtiSentinelProvider = ({
   }, [addAlert, toast, playAlarm]);
 
   return (
-    <DrishtiSentinelContext.Provider value={{ alerts, zones, addAlert, toggleAlarmSilence, getZoneById, getLatestAlertForZone, handleSos }}>
+    <DrishtiSentinelContext.Provider value={{ alerts, zones, addAlert, toggleAlarmSilence, getZoneById, getLatestAlertForZone, handleSos, toggleZoneSource }}>
       {children}
     </DrishtiSentinelContext.Provider>
   );

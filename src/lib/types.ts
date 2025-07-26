@@ -16,6 +16,7 @@ export interface Zone {
   type: 'webcam' | 'ip-camera';
   ipAddress?: string; // Only for ip-camera type
   alarmSilenced: boolean;
+  configurable: boolean;
 }
 
 
