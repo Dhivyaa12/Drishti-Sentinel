@@ -2,6 +2,10 @@
 
 Drishti Sentinel is an advanced, real-time security monitoring application built with Next.js and powered by Google's Generative AI. It provides a centralized dashboard for monitoring multiple camera feeds, detecting security threats, and managing alerts.
 
+PROJECT DOC: https://docs.google.com/document/d/1ajnRF7LXcZfz4Cuqkj3tHdLSpTDkYrIF3s2Jd7sRcPE/edit?usp=sharing
+
+YOUTUBE LINK: https://youtu.be/6umZBk-aDpM
+
 ## Project Workflow
 
 The application is designed to provide a seamless experience for security operators, from initial login to real-time threat analysis and response.
