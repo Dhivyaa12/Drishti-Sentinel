@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useRef } from 'react';
@@ -15,6 +16,10 @@ interface DrishtiSentinelContextType {
   getLatestAlertForZone: (zoneId: string) => Alert | undefined;
   handleSos: () => void;
   toggleZoneSource: (zoneId: string, newType: 'webcam' | 'ip-camera') => void;
+  isProcessing: (zoneId: string) => boolean;
+  setProcessing: (zoneId: string, status: boolean) => void;
+  buzzerOnForZone: string | null;
+  setBuzzerZone: (zoneId: string | null) => void;
 }
 
 const DrishtiSentinelContext = createContext<DrishtiSentinelContextType | undefined>(undefined);
@@ -28,6 +33,8 @@ export const DrishtiSentinelProvider = ({
 }) => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [zones, setZones] = useState<Zone[]>(initialZones);
+  const [processingZones, setProcessingZones] = useState<Set<string>>(new Set());
+  const [buzzerOnForZone, setBuzzerZone] = useState<string | null>(null);
   const { toast } = useToast();
   const lastPlayedAlertId = useRef<string | null>(null);
   const audioContextStarted = useRef(false);
@@ -36,7 +43,7 @@ export const DrishtiSentinelProvider = ({
 
   const playAlarm = useCallback(() => {
     if (!audioContextStarted.current) {
-        Tone.start();
+        Tone.start().catch(e => console.error("Tone.js start failed", e));
         audioContextStarted.current = true;
     }
     const synth = new Tone.Synth().toDestination();
@@ -46,14 +53,25 @@ export const DrishtiSentinelProvider = ({
   }, []);
 
   useEffect(() => {
+    if (buzzerOnForZone) {
+      playAlarm();
+      const interval = setInterval(playAlarm, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [buzzerOnForZone, playAlarm]);
+
+
+  useEffect(() => {
     const latestAlert = alerts[0];
     if (latestAlert && latestAlert.id !== lastPlayedAlertId.current) {
       const zone = zones.find(z => z.id === latestAlert.zoneId);
       const isHighRisk = latestAlert.riskLevel === 'high' || latestAlert.riskLevel === 'critical';
       
       if (zone && !zone.alarmSilenced && isHighRisk) {
-        playAlarm();
         lastPlayedAlertId.current = latestAlert.id;
+        if(latestAlert.type !== 'SOS Signal') {
+          setBuzzerZone(zone.id);
+        }
       }
       
       if (isHighRisk) {
@@ -92,7 +110,10 @@ export const DrishtiSentinelProvider = ({
         zone.id === zoneId ? { ...zone, alarmSilenced: !zone.alarmSilenced } : zone
       )
     );
-  }, []);
+     if (buzzerOnForZone === zoneId) {
+      setBuzzerZone(null);
+    }
+  }, [buzzerOnForZone]);
 
   const toggleZoneSource = useCallback((zoneId: string, newType: 'webcam' | 'ip-camera') => {
     setZones(prev =>
@@ -115,14 +136,13 @@ export const DrishtiSentinelProvider = ({
   }, [alerts]);
 
   const handleSos = useCallback(() => {
-    const sosAlertData = {
+    addAlert({
       type: 'SOS Signal',
       description: 'Manual SOS button activated. Immediate assistance required.',
       riskLevel: 'critical' as RiskLevel,
       zoneId: 'all-zones',
       location: 'Command Center',
-    };
-    addAlert(sosAlertData);
+    });
     setZones(prev => prev.map(zone => ({ ...zone, alarmSilenced: false })));
     toast({
       variant: 'destructive',
@@ -132,8 +152,38 @@ export const DrishtiSentinelProvider = ({
     playAlarm();
   }, [addAlert, toast, playAlarm]);
 
+  const setProcessing = useCallback((zoneId: string, status: boolean) => {
+    setProcessingZones(prev => {
+      const newSet = new Set(prev);
+      if (status) {
+        newSet.add(zoneId);
+      } else {
+        newSet.delete(zoneId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const isProcessing = useCallback((zoneId: string) => {
+    return processingZones.has(zoneId);
+  }, [processingZones]);
+
+
   return (
-    <DrishtiSentinelContext.Provider value={{ alerts, zones, addAlert, toggleAlarmSilence, getZoneById, getLatestAlertForZone, handleSos, toggleZoneSource }}>
+    <DrishtiSentinelContext.Provider value={{ 
+      alerts, 
+      zones, 
+      addAlert, 
+      toggleAlarmSilence, 
+      getZoneById, 
+      getLatestAlertForZone, 
+      handleSos, 
+      toggleZoneSource,
+      isProcessing,
+      setProcessing,
+      buzzerOnForZone,
+      setBuzzerZone
+    }}>
       {children}
     </DrishtiSentinelContext.Provider>
   );

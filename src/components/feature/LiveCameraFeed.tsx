@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, {
@@ -132,14 +133,14 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
     }));
 
     const runScan = useCallback(async () => {
-      if (!zone || isProcessing) return;
+      if (!zone || isProcessing(zone.id)) return;
   
-      setProcessing(true);
+      setProcessing(zone.id, true);
   
       const frame = await captureFrame();
       if (!frame) {
         addAlert({ type: 'System Error', zoneId: zone.id, description: 'Failed to capture frame.', riskLevel: 'medium', location: zone.name });
-        setProcessing(false);
+        setProcessing(zone.id, false);
         return;
       }
   
@@ -161,7 +162,7 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
         console.error('AI analysis failed:', error);
         addAlert({ type: 'System Error', zoneId: zone.id, description: 'AI analysis failed.', riskLevel: 'medium', location: zone.name });
       } finally {
-        setProcessing(false);
+        setProcessing(zone.id, false);
       }
     }, [zone, isProcessing, setProcessing, addAlert, captureFrame, setBuzzerZone, toast]);
 
@@ -211,7 +212,7 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
                 <div className="w-full h-full">
                     {videoElement}
                 </div>
-                 {isProcessing && (
+                 {isProcessing(zone.id) && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                         <div className="text-center text-white">
                             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-2" />
@@ -244,8 +245,8 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
             )}
             </CardContent>
             <CardFooter className="p-2 flex flex-col items-stretch space-y-2">
-            <Button onClick={runScan} disabled={isProcessing || !isCamReady} className="w-full">
-              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />}
+            <Button onClick={runScan} disabled={isProcessing(zone.id) || !isCamReady} className="w-full">
+              {isProcessing(zone.id) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />}
               Scan for Anomalies
             </Button>
             </CardFooter>
