@@ -28,8 +28,8 @@ const FaceMatchOutputSchema = z.object({
   matchFound: z.boolean().describe('Whether a match was found in the live feed.'),
   confidenceScore: z
     .number()
-    .describe('The confidence score of the match (0-1), or null if no match.'),
-  timestamp: z.string().optional().describe('The timestamp of the match, or null if no match.'),
+    .describe('The confidence score of the match (0-1), or null if no match was found.'),
+  timestamp: z.string().optional().describe('The ISO 8601 timestamp of when the match occurred, or null if no match was found.'),
 });
 export type FaceMatchOutput = z.infer<typeof FaceMatchOutputSchema>;
 
@@ -45,19 +45,22 @@ const faceMatchPrompt = ai.definePrompt({
 
 You are given a photo of a person of interest and a frame from a live camera feed.
 
-Determine if the person of interest is present in the live camera feed.
+Your task is to determine if the person of interest is present in the live camera feed.
 
-Return a confidence score (0-1) indicating the likelihood of a match. If no match is found, return matchFound as false.
+Carefully analyze the facial features in both images.
+
+If a match is found:
+- Set 'matchFound' to true.
+- Provide a confidence score between 0 and 1 indicating the likelihood of the match.
+- Set the 'timestamp' to the current time in ISO 8601 format.
+
+If no match is found:
+- Set 'matchFound' to false.
+- Set 'confidenceScore' to null.
+- Set 'timestamp' to null.
 
 Person of Interest Photo: {{media url=personOfInterestPhotoDataUri}}
 Live Camera Feed: {{media url=liveFeedDataUri}}
-
-Output in JSON format:
-{
-  "matchFound": boolean,
-  "confidenceScore": number (0-1), or null if no match,
-  "timestamp": string, ISO date time format, only if a match is found, otherwise null.
-}
 `,
 });
 
@@ -69,15 +72,18 @@ const faceMatchFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await faceMatchPrompt(input);
-    //add the timestamp to the output
+    
     if (output?.matchFound) {
-      output.timestamp = new Date().toISOString();
-    } else {
-        // ensure timestamp is not present if no match
-        if (output) {
-            delete output.timestamp;
-        }
+      // Ensure timestamp is set if a match is found. If AI didn't provide one, set it now.
+      if (!output.timestamp) {
+          output.timestamp = new Date().toISOString();
+      }
+    } else if (output) {
+      // Ensure timestamp is null if no match is found
+      output.timestamp = undefined;
+      output.confidenceScore = null;
     }
+    
     return output!;
   }
 );

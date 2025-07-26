@@ -143,7 +143,7 @@ export function FaceMatching() {
                 {result.matchFound && result.timestamp && (
                      <div className="text-sm space-y-2">
                         <div className="flex justify-between items-center"><span>Zone:</span> <span className="font-bold text-foreground">{result.zoneName}</span></div>
-                        <div className="flex justify-between items-center"><span>Timestamp:</span> <span className="font-mono text-foreground">{new Date(result.timestamp).toLocaleString()}</span></div>
+                        <div className="flex justify-between items-center"><span>Appearance Time:</span> <span className="font-mono text-foreground">{new Date(result.timestamp).toLocaleString()}</span></div>
                         <div>
                             <Label className="text-xs">Confidence</Label>
                             <div className="flex items-center gap-2">
