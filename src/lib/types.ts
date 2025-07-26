@@ -39,12 +39,12 @@ export type CrowdDensityAnalysisResult = {
 
 export type FaceMatchResult = {
   matchFound: boolean;
-  confidenceScore: number | null;
-  timestamp?: string;
-  frameDataUri?: string;
-  personPhotoDataUri?: string;
-  zoneId?: string;
-  zoneName?: string;
+  confidenceScore: number;
+  timestamp: string;
+  frameDataUri: string;
+  personPhotoDataUri: string;
+  zoneId: string;
+  zoneName: string;
 };
 
 export type AnomalyType = 
