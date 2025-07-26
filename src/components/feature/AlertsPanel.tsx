@@ -20,11 +20,11 @@ const riskLevelClasses: Record<RiskLevel, { bg: string, border: string, text: st
 
 const AlertsPanel = () => {
   const { alerts, getZoneById } = useDrishti();
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [selectedCoordinates, setSelectedCoordinates] = useState<GeolocationCoordinates | null>(null);
 
-  const handleViewOnMap = (location: string | null) => {
-    if (location) {
-      setSelectedLocation(location);
+  const handleViewOnMap = (coordinates?: GeolocationCoordinates) => {
+    if (coordinates) {
+      setSelectedCoordinates(coordinates);
     }
   };
 
@@ -75,8 +75,8 @@ const AlertsPanel = () => {
                                 <span>{formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}</span>
                             </div>
                         </div>
-                       {alert.location && (
-                        <Button variant="ghost" size="sm" className="text-xs h-auto py-0.5 px-1.5" onClick={() => handleViewOnMap(alert.location)}>
+                       {alert.coordinates && (
+                        <Button variant="ghost" size="sm" className="text-xs h-auto py-0.5 px-1.5" onClick={() => handleViewOnMap(alert.coordinates)}>
                           <Map className="h-3 w-3 mr-1" />
                           View
                         </Button>
@@ -98,7 +98,7 @@ const AlertsPanel = () => {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 h-[calc(100%-72px)]">
-                    <MapView selectedLocation={selectedLocation}/>
+                    <MapView selectedLocation={selectedCoordinates}/>
                 </CardContent>
             </Card>
         </div>

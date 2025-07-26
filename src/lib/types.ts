@@ -7,7 +7,8 @@ export interface Alert {
   riskLevel: RiskLevel;
   timestamp: string;
   zoneId: string;
-  location: string; // Should be a string for a geographic location, can be updated later
+  location: string;
+  coordinates?: GeolocationCoordinates;
 }
 
 export interface Zone {

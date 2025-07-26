@@ -1,43 +1,44 @@
 "use client";
 
-import Image from 'next/image';
-import { Card } from '@/components/ui/card';
+import React from 'react';
+import { MapPin } from 'lucide-react';
 
 interface MapViewProps {
-    selectedLocation: string | null;
+  selectedLocation: GeolocationCoordinates | null;
 }
 
-export default function MapView({ selectedLocation }: MapViewProps) {
+const MapView: React.FC<MapViewProps> = ({ selectedLocation }) => {
+  const getMapUrl = () => {
+    if (selectedLocation) {
+      const { latitude, longitude } = selectedLocation;
+      return `https://maps.google.com/maps?q=${latitude},${longitude}&hl=es;z=14&output=embed`;
+    }
+    // Default location (e.g., a central point) if no location is selected
+    return `https://maps.google.com/maps?q=20.5937,78.9629&hl=es;z=5&output=embed`;
+  };
+
   return (
-    <Card className="w-full h-full bg-muted rounded-none relative shadow-inner">
-      <Image
-        src="https://placehold.co/800x600/1a2a3a/4a5a6a"
-        alt="Map placeholder"
-        layout="fill"
-        objectFit="cover"
-        data-ai-hint="world map"
-        className="opacity-30"
-      />
-      <div className="absolute inset-0 bg-black/10 flex items-center justify-center p-4">
-        {selectedLocation ? (
-             <div className="text-center">
-                <p className="text-card-foreground font-semibold tracking-wider">MAP VIEW</p>
-                <p className="text-sm text-muted-foreground mt-1">Showing location for:</p>
-                <p className="text-lg font-bold text-primary">{selectedLocation}</p>
-             </div>
-        ) : (
-            <p className="text-card-foreground font-semibold tracking-wider text-center">SELECT AN ALERT TO VIEW ITS LOCATION</p>
-        )}
-      </div>
-       <a
-            href={selectedLocation ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedLocation)}` : '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute bottom-4 right-4 text-xs bg-background/80 backdrop-blur-sm text-foreground py-1 px-3 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-            aria-disabled={!selectedLocation}
-        >
-            Open in Google Maps
-        </a>
-    </Card>
+    <div className="h-full w-full bg-muted rounded-md relative">
+      {selectedLocation ? (
+        <iframe
+          width="100%"
+          height="100%"
+          frameBorder="0"
+          scrolling="no"
+          marginHeight={0}
+          marginWidth={0}
+          src={getMapUrl()}
+          title="Alert Location"
+        ></iframe>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
+            <MapPin className="w-12 h-12 mb-4" />
+            <p className="text-base font-medium">No Location Selected</p>
+            <p className="text-sm">Select an alert to see its location on the map.</p>
+        </div>
+      )}
+    </div>
   );
-}
+};
+
+export default MapView;
