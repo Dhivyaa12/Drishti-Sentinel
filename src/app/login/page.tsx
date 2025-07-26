@@ -23,7 +23,7 @@ export default function LoginPage() {
     e.preventDefault();
     // No credential validation as requested.
     // Any input will allow login.
-    localStorage.setItem('authenticated', 'true');
+    sessionStorage.setItem('authenticated', 'true');
     router.push("/dashboard");
   };
 

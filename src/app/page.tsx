@@ -7,7 +7,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem('authenticated');
+    const loggedIn = sessionStorage.getItem('authenticated');
     if (loggedIn) {
       router.replace('/dashboard');
     } else {

@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const zoneBRef = useRef<LiveCameraFeedRef>(null);
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem('authenticated');
+    const loggedIn = sessionStorage.getItem('authenticated');
     if (loggedIn) {
       setIsAuthenticated(true);
     } else {
