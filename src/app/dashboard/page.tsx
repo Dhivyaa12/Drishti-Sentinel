@@ -62,7 +62,7 @@ export default function DashboardPage() {
           
           {/* Right Column: Security Control Panel & Alerts */}
           <div className="lg:col-span-1 flex flex-col gap-4 lg:overflow-y-auto">
-             <SecurityControlPanel />
+             <SecurityControlPanel zoneARef={zoneARef} zoneBRef={zoneBRef}/>
              <AlertsPanel />
           </div>
         </main>

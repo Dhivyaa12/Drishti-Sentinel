@@ -11,8 +11,7 @@ import { Loader2, Users } from 'lucide-react';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
 import { analyzeCrowdDensity } from '@/ai/flows/crowd-density-analysis';
 import { Separator } from '../ui/separator';
-
-const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
+import { LiveCameraFeedRef } from './LiveCameraFeed';
 
 type ZoneAnalysisResult = {
     zoneId: string;
@@ -24,18 +23,27 @@ type ZoneAnalysisResult = {
     frameDataUri?: string;
 };
 
-export function CrowdDensityAnalysis() {
+interface CrowdDensityAnalysisProps {
+  zoneARef: React.RefObject<LiveCameraFeedRef>;
+  zoneBRef: React.RefObject<LiveCameraFeedRef>;
+}
+
+export function CrowdDensityAnalysis({ zoneARef, zoneBRef }: CrowdDensityAnalysisProps) {
   const { zones, addAlert } = useDrishti();
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<ZoneAnalysisResult[]>([]);
   const [history, setHistory] = useState<ZoneAnalysisResult[]>([]);
   const { toast } = useToast();
 
-  const getFrameAsDataUri = async (zoneId: string): Promise<string> => {
-    // This function now needs a way to get the data URI.
-    // For now, we will return a placeholder.
-    // In a real implementation, you would need to get the frame from the video element or IP camera.
-    return Promise.resolve(placeholderImageUrl);
+  const getFrameAsDataUri = async (zoneId: string): Promise<string | null> => {
+    const zone = zones.find(z => z.id === zoneId);
+    if (!zone) return null;
+
+    const ref = zone.name === 'Zone A' ? zoneARef : zoneBRef;
+    if (ref.current) {
+        return ref.current.captureFrame();
+    }
+    return null;
   }
 
   const handleAnalysis = async () => {
@@ -45,6 +53,12 @@ export function CrowdDensityAnalysis() {
     try {
       const analysisPromises = zones.map(async (zone) => {
         const dataUri = await getFrameAsDataUri(zone.id);
+
+        if (!dataUri) {
+             toast({ variant: 'destructive', title: 'Error', description: `Could not capture frame from ${zone.name}` });
+             return null;
+        }
+
         const analysisResult = await analyzeCrowdDensity({ photoDataUri: dataUri, zone: zone.name });
         
         return {
@@ -58,7 +72,7 @@ export function CrowdDensityAnalysis() {
         };
       });
 
-      const analysisResults = await Promise.all(analysisPromises);
+      const analysisResults = (await Promise.all(analysisPromises)).filter(Boolean) as ZoneAnalysisResult[];
       
       setResults(analysisResults);
       setHistory(prev => [...analysisResults, ...prev].slice(-20));

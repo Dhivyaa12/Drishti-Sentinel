@@ -13,11 +13,15 @@ import { Separator } from '@/components/ui/separator';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
 import { faceMatch } from '@/ai/flows/face-matching';
 import { Progress } from '../ui/progress';
+import { LiveCameraFeedRef } from './LiveCameraFeed';
 
-const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
+interface FaceMatchingProps {
+  zoneARef: React.RefObject<LiveCameraFeedRef>;
+  zoneBRef: React.RefObject<LiveCameraFeedRef>;
+}
 
-export function FaceMatching() {
-  const { zones, addAlert, getZoneById } = useDrishti();
+export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
+  const { zones, addAlert } = useDrishti();
   const [personPhoto, setPersonPhoto] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<FaceMatchResult | null>(null);
@@ -36,11 +40,15 @@ export function FaceMatching() {
     }
   };
 
-   const getFrameAsDataUri = async (zoneId: string): Promise<string> => {
-    // In a real implementation, you would get the frame from the video element or IP camera.
-    // The LiveCameraFeed component has a `captureFrame` method that can be called via a ref.
-    // For this prototype, we'll continue to use a placeholder.
-    return Promise.resolve(placeholderImageUrl);
+   const getFrameAsDataUri = async (zoneId: string): Promise<string | null> => {
+    const zone = zones.find(z => z.id === zoneId);
+    if (!zone) return null;
+
+    const ref = zone.name === 'Zone A' ? zoneARef : zoneBRef;
+    if (ref.current) {
+        return ref.current.captureFrame();
+    }
+    return null;
   }
 
   const handleAnalysis = async () => {
@@ -65,6 +73,12 @@ export function FaceMatching() {
             getFrameAsDataUri(zoneA.id),
             getFrameAsDataUri(zoneB.id)
         ]);
+        
+        if (!zoneADataUri || !zoneBDataUri) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not capture frames from one or more zones.' });
+            setIsProcessing(false);
+            return;
+        }
       
       const analysisResult = await faceMatch({
           targetPhotoDataUri: personPhoto,

@@ -5,8 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, ScanFace } from 'lucide-react';
 import { CrowdDensityAnalysis } from './CrowdDensityAnalysis';
 import { FaceMatching } from './FaceMatching';
+import { LiveCameraFeedRef } from './LiveCameraFeed';
 
-export const SecurityControlPanel: React.FC = () => {
+interface SecurityControlPanelProps {
+  zoneARef: React.RefObject<LiveCameraFeedRef>;
+  zoneBRef: React.RefObject<LiveCameraFeedRef>;
+}
+
+export const SecurityControlPanel: React.FC<SecurityControlPanelProps> = ({ zoneARef, zoneBRef }) => {
   return (
     <div className="flex flex-col h-full bg-card rounded-lg border">
         <div className="p-4 border-b">
@@ -21,10 +27,10 @@ export const SecurityControlPanel: React.FC = () => {
                 </TabsList>
             </div>
             <TabsContent value="density" className="pt-0 flex-1 overflow-y-auto">
-              <CrowdDensityAnalysis />
+              <CrowdDensityAnalysis zoneARef={zoneARef} zoneBRef={zoneBRef} />
             </TabsContent>
             <TabsContent value="match" className="pt-0 flex-1 overflow-y-auto">
-              <FaceMatching />
+              <FaceMatching zoneARef={zoneARef} zoneBRef={zoneBRef} />
             </TabsContent>
         </Tabs>
     </div>
