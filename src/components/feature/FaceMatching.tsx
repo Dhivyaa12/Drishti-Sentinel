@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, UserCheck, UserX, ScanFace } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { faceMatch } from '@/ai/flows/face-matching';
+import { analyzeCameraFeed } from '@/ai/flows/analyze-camera-feed';
 import { Progress } from '../ui/progress';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
@@ -54,11 +54,24 @@ export function FaceMatching() {
     toast({ title: 'Scanning all zones for face match...' });
     
     try {
-      // Analyze all zones in parallel
+      // This is a mock implementation.
+      // In a real application, you would pass both images to the AI.
+      // For now, we simulate a check with the consolidated flow.
       const results = await Promise.all(zones.map(async (zone) => {
         const liveFeedDataUri = await getFrameAsDataUri(zone.id);
-        const matchResult = await faceMatch({ personOfInterestPhotoDataUri: personPhoto, liveFeedDataUri });
-        return { ...matchResult, frameDataUri: liveFeedDataUri, zoneName: zone.name, zoneId: zone.id };
+        const analysisResult = await analyzeCameraFeed({ photoDataUri: liveFeedDataUri, zone: zone.name });
+        
+        // Mocking face match based on strong emotion detection
+        const mockConfidence = analysisResult.isStrongEmotion ? Math.random() * 0.3 + 0.7 : Math.random() * 0.4;
+        
+        return { 
+            matchFound: mockConfidence > 0.7,
+            confidenceScore: mockConfidence,
+            timestamp: new Date().toISOString(),
+            frameDataUri: liveFeedDataUri, 
+            zoneName: zone.name, 
+            zoneId: zone.id 
+        };
       }));
       
       const bestMatch = results.reduce((prev, current) => {

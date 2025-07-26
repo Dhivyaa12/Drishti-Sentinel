@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2, Users } from 'lucide-react';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { analyzeCrowdDensity } from '@/ai/flows/crowd-density-analysis';
+import { analyzeCameraFeed } from '@/ai/flows/analyze-camera-feed';
 import { Separator } from '../ui/separator';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
@@ -17,7 +17,12 @@ const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
 type ZoneAnalysisResult = {
     zoneId: string;
     zoneName: string;
-} & CrowdDensityAnalysisResult;
+    headCount: number;
+    densityLevel: 'low' | 'medium' | 'high';
+    report: string;
+    timestamp: string;
+    frameDataUri?: string;
+};
 
 export function CrowdDensityAnalysis() {
   const { zones, addAlert } = useDrishti();
@@ -40,9 +45,22 @@ export function CrowdDensityAnalysis() {
     try {
       const analysisPromises = zones.map(async (zone) => {
         const dataUri = await getFrameAsDataUri(zone.id);
-        const analysisResult = await analyzeCrowdDensity({ photoDataUri: dataUri, zoneDescription: zone.name });
+        const analysisResult = await analyzeCameraFeed({ photoDataUri: dataUri, zone: zone.name });
+        
+        let headCount = 0;
+        let densityLevel: 'low' | 'medium' | 'high' = 'low';
+
+        if (analysisResult.anomalyType === 'overcrowd' || analysisResult.anomalyType === 'crowd_gathering') {
+            const countMatch = analysisResult.description.match(/\d+/);
+            headCount = countMatch ? parseInt(countMatch[0], 10) : 0;
+            if (headCount > 6) densityLevel = 'high';
+            else if (headCount > 2) densityLevel = 'medium';
+        }
+
         return {
-          ...analysisResult,
+          headCount,
+          densityLevel,
+          report: analysisResult.description,
           zoneId: zone.id,
           zoneName: zone.name,
           timestamp: new Date().toISOString(),

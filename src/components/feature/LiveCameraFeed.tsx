@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Button } from "@/components/ui/button";
 import { useDrishti } from "@/contexts/DrishtiSentinelContext";
-import { detectAnomalies } from "@/ai/flows/detect-anomalies";
+import { analyzeCameraFeed } from "@/ai/flows/analyze-camera-feed";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -129,37 +129,41 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
     }));
 
     const runScan = useCallback(async () => {
-      if (!zone || isProcessing(zone.id)) return;
-  
-      setProcessing(zone.id, true);
-  
-      const frame = await captureFrame();
-      if (!frame) {
-        addAlert({ type: 'System Error', zoneId: zone.id, description: 'Failed to capture frame.', riskLevel: 'medium', location: zone.name });
-        setProcessing(zone.id, false);
-        return;
-      }
-  
-      try {
-        const result = await detectAnomalies({ cameraFeedDataUri: frame, zone: zone.name });
-        
-        if (result.anomalies && result.anomalies.length > 0) {
-            result.anomalies.forEach(anomaly => {
-                addAlert({ ...anomaly, zoneId: zone.id });
-                if(anomaly.riskLevel === 'high' || anomaly.riskLevel === 'critical') {
+        if (!zone || isProcessing(zone.id)) return;
+    
+        setProcessing(zone.id, true);
+    
+        const frame = await captureFrame();
+        if (!frame) {
+            addAlert({ type: 'System Error', zoneId: zone.id, description: 'Failed to capture frame.', riskLevel: 'medium', location: zone.name });
+            setProcessing(zone.id, false);
+            return;
+        }
+    
+        try {
+            const result = await analyzeCameraFeed({ photoDataUri: frame, zone: zone.name });
+            
+            if (result.isAnomaly) {
+                addAlert({ 
+                    type: result.anomalyType, 
+                    description: result.description,
+                    riskLevel: result.riskLevel,
+                    zoneId: zone.id,
+                    location: zone.name
+                });
+                if(result.riskLevel === 'high' || result.riskLevel === 'critical') {
                     if (setBuzzerZone) setBuzzerZone(zone.id);
                 }
-            });
-        } else {
-            toast({ title: 'All Clear', description: `No anomalies detected in ${zone.name}.`});
+            } else {
+                toast({ title: 'All Clear', description: `No anomalies detected in ${zone.name}.`});
+            }
+    
+        } catch (error) {
+            console.error('AI analysis failed:', error);
+            addAlert({ type: 'System Error', zoneId: zone.id, description: 'AI analysis failed.', riskLevel: 'medium', location: zone.name });
+        } finally {
+            setProcessing(zone.id, false);
         }
-  
-      } catch (error) {
-        console.error('AI analysis failed:', error);
-        addAlert({ type: 'System Error', zoneId: zone.id, description: 'AI analysis failed.', riskLevel: 'medium', location: zone.name });
-      } finally {
-        setProcessing(zone.id, false);
-      }
     }, [zone, isProcessing, setProcessing, addAlert, captureFrame, setBuzzerZone, toast]);
 
     if (!zone) return null;
