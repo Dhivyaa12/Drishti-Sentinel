@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Header } from '@/components/feature/Header';
+import Header from '@/components/feature/Header';
 import { LiveCameraFeed, LiveCameraFeedRef } from '@/components/feature/LiveCameraFeed';
 import { SecurityControlPanel } from '@/components/feature/SecurityControlPanel';
 import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
