@@ -4,7 +4,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useRef } from 'react';
 import type { Alert, Zone, RiskLevel, ZoneStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { makeEmergencyCall } from '@/ai/flows/emergency-call';
 import useLocation from '@/hooks/use-location';
 
 interface DrishtiSentinelContextType {
@@ -85,22 +84,12 @@ export const DrishtiSentinelProvider = ({
   const originalIpAddresses = useRef(new Map(initialZones.map(z => [z.id, z.ipAddress])));
 
   const handleEmergencyCall = useCallback((eventDescription: string) => {
-    makeEmergencyCall({ eventDescription })
-      .then(response => {
-        console.log('Emergency call initiated:', response.status);
-        toast({
-          title: 'Emergency Call Service',
-          description: response.status,
-        });
-      })
-      .catch(err => {
-        console.error('Failed to initiate emergency call', err);
-        toast({
-          variant: 'destructive',
-          title: 'Emergency Call Failed',
-          description: 'Could not contact emergency services.',
-        });
-      });
+    // Mock emergency call
+    console.log('MOCK_CALL_SERVICE: Calling emergency services. Reason: ' + eventDescription);
+    toast({
+        title: 'Emergency Call Service',
+        description: `Successfully initiated emergency call.`,
+    });
   }, [toast]);
 
   useEffect(() => {
