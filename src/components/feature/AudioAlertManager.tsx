@@ -8,12 +8,23 @@ import * as Tone from 'tone';
 const AudioAlertManager = () => {
   const { buzzerOnForZone } = useDrishti();
   const audioContextStarted = useRef(false);
-  const synth = useRef<Tone.Synth | null>(null);
+  const alarmSynth = useRef<Tone.MonoSynth | null>(null);
+  const alarmInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Initialize synth on the client
-    if (typeof window !== 'undefined' && !synth.current) {
-        synth.current = new Tone.Synth().toDestination();
+    if (typeof window !== 'undefined' && !alarmSynth.current) {
+        alarmSynth.current = new Tone.MonoSynth({
+            oscillator: {
+                type: "sine"
+            },
+            envelope: {
+                attack: 0.1,
+                decay: 0.2,
+                sustain: 0.5,
+                release: 1
+            }
+        }).toDestination();
     }
   }, []);
 
@@ -23,25 +34,33 @@ const AudioAlertManager = () => {
         audioContextStarted.current = true;
     }
     
-    if (synth.current) {
-        const now = Tone.now()
-        synth.current.triggerAttackRelease("C5", "8n", now);
-        synth.current.triggerAttackRelease("G5", "8n", now + 0.2);
+    if (alarmSynth.current) {
+        const now = Tone.now();
+        alarmSynth.current.triggerAttackRelease("A5", "8n", now);
+        alarmSynth.current.triggerAttackRelease("C6", "8n", now + 0.5);
     }
   };
+
+  const stopAlarm = () => {
+    if (alarmInterval.current) {
+      clearInterval(alarmInterval.current);
+      alarmInterval.current = null;
+    }
+    if (alarmSynth.current) {
+        alarmSynth.current.triggerRelease(Tone.now());
+    }
+  }
   
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
-    
     if (buzzerOnForZone) {
       playAlarm(); // Play immediately
-      intervalId = setInterval(playAlarm, 2000); // Repeat every 2 seconds
+      alarmInterval.current = setInterval(playAlarm, 1000); // Repeat every second
+    } else {
+        stopAlarm();
     }
 
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      stopAlarm();
     };
   }, [buzzerOnForZone]);
 
