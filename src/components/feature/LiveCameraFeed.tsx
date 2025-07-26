@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Loader2, Monitor, ScanSearch, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Monitor, ScanSearch } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { urlToDataUri, captureVideoFrame } from '@/lib/utils';
 import { detectAnomalies } from '@/ai/flows/detect-anomalies';
@@ -16,7 +16,7 @@ import { Label } from '../ui/label';
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
 
 export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
-  const { getZoneById, toggleAlarmSilence, addAlert, toggleZoneSource } = useDrishti();
+  const { getZoneById, addAlert, toggleZoneSource } = useDrishti();
   const zone = getZoneById(zoneId);
   const { toast } = useToast();
   
@@ -117,14 +117,6 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
           </CardTitle>
           <CardDescription>{zone.type === 'webcam' ? 'Webcam Feed' : `IP: ${zone.ipAddress}`}</CardDescription>
         </div>
-        <Button
-          variant={zone.alarmSilenced ? 'secondary' : 'outline'}
-          size="icon"
-          onClick={() => toggleAlarmSilence(zone.id)}
-          aria-label={zone.alarmSilenced ? 'Unsilence alarm' : 'Silence alarm'}
-        >
-          {zone.alarmSilenced ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-        </Button>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4">
         <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted relative">
