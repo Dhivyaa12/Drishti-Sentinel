@@ -36,6 +36,7 @@ const AudioAlertManager = () => {
     
     if (alarmSynth.current) {
         const now = Tone.now();
+        // Short, distinct two-tone siren pulse
         alarmSynth.current.triggerAttackRelease("A5", "8n", now);
         alarmSynth.current.triggerAttackRelease("C6", "8n", now + 0.5);
     }
@@ -47,6 +48,7 @@ const AudioAlertManager = () => {
       alarmInterval.current = null;
     }
     if (alarmSynth.current) {
+        // Stop any currently playing sound and cancel future scheduled events
         alarmSynth.current.triggerRelease(Tone.now());
     }
   }
