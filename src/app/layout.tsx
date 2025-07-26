@@ -1,10 +1,10 @@
 import type {Metadata} from 'next';
-import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Drishti Sentinel',
-  description: 'AI-Powered Security Dashboard',
+  description: 'Advanced AI-Powered Event Security Dashboard',
 };
 
 export default function RootLayout({
