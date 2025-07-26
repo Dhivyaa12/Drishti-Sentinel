@@ -17,8 +17,8 @@ body {
     --popover: 0 0% 4%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 0 100% 50%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 48 96% 51%; /* Yellow */
+    --primary-foreground: 0 0% 10%;
 
     --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 98%;
@@ -26,18 +26,18 @@ body {
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 64%;
 
-    --accent: 60 95% 55%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 48 96% 51%; /* Yellow */
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 100% 50%;
+    --destructive: 0 84% 60%; /* Red */
     --destructive-foreground: 0 0% 98%;
 
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 0 100% 50%;
+    --ring: 48 96% 51%; /* Yellow */
     
-    --chart-1: 0 100% 50%;
-    --chart-2: 60 95% 55%;
+    --chart-1: 48 96% 51%;
+    --chart-2: 0 84% 60%;
     --chart-3: 204 10% 40%;
     --chart-4: 0 0% 80%;
     --chart-5: 60 95% 65%;
