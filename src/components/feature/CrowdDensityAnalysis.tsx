@@ -59,27 +59,20 @@ export function CrowdDensityAnalysis() {
       const dataUri = await getFrameAsDataUri(selectedZoneId);
       const analysisResult = await analyzeCrowdDensity({ photoDataUri: dataUri, zoneDescription: zone.name });
       
-      let densityLevel: 'low' | 'medium' | 'high';
-      if (analysisResult.headCount <= 2) {
-        densityLevel = 'low';
-      } else if (analysisResult.headCount <= 6) {
-        densityLevel = 'medium';
-      } else {
-        densityLevel = 'high';
-      }
-
-      const newResult = { ...analysisResult, densityLevel, timestamp: new Date().toISOString(), frameDataUri: dataUri };
+      const newResult = { ...analysisResult, timestamp: new Date().toISOString(), frameDataUri: dataUri };
 
       setResult(newResult);
       setHistory(prev => [...prev, newResult].slice(-10)); // Keep last 10 results
       
-      addAlert({
-        type: 'Crowd Report',
-        description: `Density is ${newResult.densityLevel} with ${newResult.headCount} people detected.`,
-        riskLevel: newResult.densityLevel === 'high' ? 'high' : newResult.densityLevel === 'medium' ? 'medium' : 'low',
-        zoneId: zone.id,
-        location: zone.name,
-      });
+      if (newResult.densityLevel === 'high') {
+         addAlert({
+          type: 'Crowd Report',
+          description: `High density detected: ${newResult.headCount} people in ${zone.name}.`,
+          riskLevel: 'high',
+          zoneId: zone.id,
+          location: zone.name,
+        });
+      }
 
       toast({ title: 'Crowd Analysis Complete', description: `Found ${newResult.headCount} people in ${zone.name}.` });
     } catch (error) {

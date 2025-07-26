@@ -1,5 +1,3 @@
-// Implemented crowd density analysis flow.
-
 'use server';
 
 /**
@@ -26,7 +24,7 @@ export type AnalyzeCrowdDensityInput = z.infer<typeof AnalyzeCrowdDensityInputSc
 const AnalyzeCrowdDensityOutputSchema = z.object({
   headCount: z.number().describe('The number of people detected in the image.'),
   densityLevel: z
-    .string()
+    .enum(['low', 'medium', 'high'])
     .describe(
       'The crowd density level, which can be low, medium, or high, based on the head count.'
     ),
@@ -44,22 +42,23 @@ const prompt = ai.definePrompt({
   name: 'analyzeCrowdDensityPrompt',
   input: {schema: AnalyzeCrowdDensityInputSchema},
   output: {schema: AnalyzeCrowdDensityOutputSchema},
-  prompt: `You are a security expert analyzing crowd density in a specific zone.
+  prompt: `You are a security AI that specializes in crowd density analysis.
 
-You will receive an image of the zone and its description. Your task is to count the number of people in the image, determine the crowd density level (low, medium, or high), and generate a detailed report.
+You will receive an image of a specific zone and its description. Your task is to count the number of human heads in the image to determine the crowd density.
 
-Consider the following factors when determining crowd density:
+Follow these rules for categorizing the density:
+- Low: 2 or fewer heads.
+- Medium: 3 to 6 heads.
+- High: More than 6 heads.
 
-- The size of the zone
-- The number of people present
-- The activity level of the people
+Generate a brief, one-sentence report describing your findings.
 
 Use the following as the primary source of information about the crowd.
 
 Zone Description: {{{zoneDescription}}}
 Photo: {{media url=photoDataUri}}
 
-Output the head count, density level, and a detailed report.
+Format your response as a JSON object with three fields: 'headCount' (number), 'densityLevel' ('low', 'medium', or 'high'), and 'report' (string).
 `,
 });
 
