@@ -12,6 +12,7 @@ import MapView from "./map-view";
 import { formatDistanceToNow } from 'date-fns';
 
 const riskLevelClasses: Record<RiskLevel, { bg: string, border: string, text: string, badge: "destructive" | "secondary" | "outline" }> = {
+    Normal: { bg: 'bg-green-500/10', border: 'border-green-500/50', text: 'text-green-400', badge: 'outline' },
     low: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/50', text: 'text-yellow-400', badge: 'outline' },
     medium: { bg: 'bg-orange-500/10', border: 'border-orange-500/50', text: 'text-orange-400', badge: 'secondary' },
     high: { bg: 'bg-red-500/10', border: 'border-red-500/50', text: 'text-red-400', badge: 'destructive' },
