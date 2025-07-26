@@ -2,13 +2,15 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useRef } from 'react';
-import type { Alert, Zone, RiskLevel } from '@/lib/types';
+import type { Alert, Zone, RiskLevel, ZoneStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { makeEmergencyCall } from '@/ai/flows/emergency-call';
 
 interface DrishtiSentinelContextType {
   alerts: Alert[];
   zones: Zone[];
+  zoneStatuses: ZoneStatus[];
+  updateZoneStatus: (zoneId: string, newStatus: Partial<Omit<ZoneStatus, 'zoneId' | 'zoneName'>>) => void;
   addAlert: (alertData: Omit<Alert, 'id' | 'timestamp'>) => void;
   toggleAlarmSilence: (zoneId: string) => void;
   getZoneById: (zoneId: string) => Zone | undefined;
@@ -58,6 +60,25 @@ export const DrishtiSentinelProvider = ({
   const [buzzerOnForZone, setBuzzerZone] = useState<string | null>(null);
   const { toast } = useToast();
   const lastHighRiskAlertId = useRef<string | null>(null);
+
+  const [zoneStatuses, setZoneStatuses] = useState<ZoneStatus[]>(
+    initialZones.map(zone => ({
+      zoneId: zone.id,
+      zoneName: zone.name,
+      status: 'Monitoring...',
+      riskLevel: 'Normal',
+      anomaly: 'None',
+      description: 'No issues detected.',
+    }))
+  );
+
+  const updateZoneStatus = useCallback((zoneId: string, newStatus: Partial<Omit<ZoneStatus, 'zoneId' | 'zoneName'>>) => {
+    setZoneStatuses(prevStatuses =>
+      prevStatuses.map(status =>
+        status.zoneId === zoneId ? { ...status, ...newStatus } : status
+      )
+    );
+  }, []);
   
   const originalIpAddresses = useRef(new Map(initialZones.map(z => [z.id, z.ipAddress])));
 
@@ -175,7 +196,9 @@ export const DrishtiSentinelProvider = ({
   return (
     <DrishtiSentinelContext.Provider value={{ 
       alerts, 
-      zones, 
+      zones,
+      zoneStatuses,
+      updateZoneStatus,
       addAlert, 
       toggleAlarmSilence, 
       getZoneById, 

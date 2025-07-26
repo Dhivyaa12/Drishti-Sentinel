@@ -1,22 +1,29 @@
-'use client';
+"use client";
 
-import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { RiskLevel } from '@/lib/types';
-import { ListVideo } from 'lucide-react';
+import { useDrishti } from "@/contexts/DrishtiSentinelContext";
+import type { RiskLevel } from "@/lib/types";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ListVideo } from "lucide-react";
 
-const riskColorMap: { [key in RiskLevel | 'Normal']: string } = {
-  Normal: 'bg-green-500',
-  low: 'bg-yellow-500',
-  medium: 'bg-orange-500',
-  high: 'bg-red-500',
-  critical: 'bg-red-700',
+const riskLevelColors: Record<RiskLevel, string> = {
+    Normal: "bg-green-500",
+    low: "bg-yellow-500",
+    medium: "bg-orange-500",
+    high: "bg-red-500",
+    critical: "bg-red-700",
 };
 
-export function ZoneStatusTable() {
-  const { zones, getLatestAlertForZone } = useDrishti();
+const ZoneStatusTable = () => {
+  const { zoneStatuses } = useDrishti();
 
   return (
     <div className="p-0">
@@ -26,46 +33,38 @@ export function ZoneStatusTable() {
                 Zone Status Overview
             </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+      <CardContent className="p-0">
+        <div className="border rounded-md">
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Zone</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Risk Level</TableHead>
-                        <TableHead>Anomaly</TableHead>
-                        <TableHead>Description</TableHead>
+                    <TableHead className="w-[100px]">Zone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Risk Level</TableHead>
+                    <TableHead>Anomaly</TableHead>
+                    <TableHead className="min-w-[250px]">Description</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {zones.map(zone => {
-                        const latestAlert = getLatestAlertForZone(zone.id);
-                        
-                        const status = latestAlert ? 'Alert' : 'Monitoring...';
-                        const risk = latestAlert ? latestAlert.riskLevel : 'Normal';
-                        const anomaly = latestAlert ? latestAlert.type : 'None';
-                        const description = latestAlert ? latestAlert.description : 'No issues detected.';
-                        const badgeColor = riskColorMap[risk as keyof typeof riskColorMap] || 'bg-gray-500';
-
-                        return (
-                            <TableRow key={zone.id}>
-                                <TableCell className="font-medium">{zone.name}</TableCell>
-                                <TableCell>{status}</TableCell>
-                                <TableCell>
-                                    <Badge variant="default" className={`text-white ${badgeColor}`}>
-                                        <span className='capitalize'>{risk}</span>
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>{anomaly}</TableCell>
-                                <TableCell className="max-w-[250px] truncate" title={description}>
-                                    {description}
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
+                    {zoneStatuses.map((zoneStatus) => (
+                    <TableRow key={zoneStatus.zoneId}>
+                        <TableCell className="font-medium">{zoneStatus.zoneName}</TableCell>
+                        <TableCell>{zoneStatus.status}</TableCell>
+                        <TableCell>
+                            <Badge className={`capitalize ${riskLevelColors[zoneStatus.riskLevel]} text-white hover:${riskLevelColors[zoneStatus.riskLevel]}`}>
+                                {zoneStatus.riskLevel}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>{zoneStatus.anomaly}</TableCell>
+                        <TableCell className="max-w-[250px] truncate" title={zoneStatus.description}>{zoneStatus.description}</TableCell>
+                    </TableRow>
+                    ))}
                 </TableBody>
             </Table>
-        </CardContent>
+        </div>
+      </CardContent>
     </div>
   );
-}
+};
+
+export default ZoneStatusTable;

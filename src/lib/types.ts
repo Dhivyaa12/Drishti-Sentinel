@@ -1,4 +1,4 @@
-export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+export type RiskLevel = 'Normal' | 'low' | 'medium' | 'high' | 'critical';
 
 export interface Alert {
   id: string;
@@ -20,6 +20,14 @@ export interface Zone {
   configurable: boolean;
 }
 
+export interface ZoneStatus {
+  zoneId: string;
+  zoneName: string;
+  status: string;
+  riskLevel: RiskLevel;
+  anomaly: string;
+  description: string;
+}
 
 export type CrowdDensityAnalysisResult = {
   headCount: number;

@@ -5,7 +5,7 @@ import { Header } from '@/components/feature/Header';
 import { LiveCameraFeed, LiveCameraFeedRef } from '@/components/feature/LiveCameraFeed';
 import { SecurityControlPanel } from '@/components/feature/SecurityControlPanel';
 import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
-import { ZoneStatusTable } from '@/components/feature/zone-status-table';
+import ZoneStatusTable from '@/components/feature/zone-status-table';
 import { Card } from '@/components/ui/card';
 import AlertsPanel from '@/components/feature/AlertsPanel';
 import AudioAlertManager from '@/components/feature/AudioAlertManager';
