@@ -113,22 +113,39 @@ export function CrowdDensityAnalysis() {
           <CardHeader>
             <CardTitle className="text-base">Analysis Results</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {results.map(result => (
-                 <div key={result.zoneId} className="space-y-4 pt-4">
-                    <h5 className="font-semibold">{result.zoneName}</h5>
-                    {result.frameDataUri && (
-                        <div className="aspect-video relative rounded-md overflow-hidden bg-muted border">
-                            <Image src={result.frameDataUri} alt={`Analyzed frame from ${result.zoneName}`} layout="fill" objectFit="cover" />
-                        </div>
-                    )}
+          <CardContent className="space-y-2">
+            {results.map((result, index) => (
+              <React.Fragment key={result.zoneId}>
+                <div className="space-y-4 pt-4">
+                  <h5 className="font-semibold">{result.zoneName}</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Left Column: Details */}
                     <div className="text-sm space-y-2">
-                        <div className="flex justify-between"><span>Head Count:</span> <span className="font-bold">{result.headCount}</span></div>
-                        <div className="flex justify-between"><span>Density Level:</span> <span className="font-bold capitalize">{result.densityLevel}</span></div>
+                      <div className="flex justify-between">
+                        <span>Head Count:</span>
+                        <span className="font-bold">{result.headCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Density Level:</span>
+                        <span className="font-bold capitalize">{result.densityLevel}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground pt-2">{result.report}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground pt-2">{result.report}</p>
-                    <Separator />
+                    {/* Right Column: Image */}
+                    {result.frameDataUri && (
+                      <div className="aspect-video relative rounded-md overflow-hidden bg-muted border">
+                        <Image
+                          src={result.frameDataUri}
+                          alt={`Analyzed frame from ${result.zoneName}`}
+                          layout="fill"
+                          objectFit="cover"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
+                {index < results.length - 1 && <Separator />}
+              </React.Fragment>
             ))}
           </CardContent>
         </Card>
