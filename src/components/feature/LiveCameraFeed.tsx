@@ -286,5 +286,3 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
 
 LiveCameraFeed.displayName = "LiveCameraFeed";
 export { LiveCameraFeed };
-
-    

@@ -8,6 +8,7 @@ import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
 import { ZoneStatusTable } from '@/components/feature/zone-status-table';
 import { Card } from '@/components/ui/card';
 import { AlertsPanel } from '@/components/feature/AlertsPanel';
+import AudioAlertManager from '@/components/feature/AudioAlertManager';
 
 const zones = [
   { id: 'zone-a', name: 'Zone A', type: 'webcam' as const, alarmSilenced: false, configurable: false },
@@ -34,6 +35,7 @@ export default function Home() {
 
   return (
     <DrishtiSentinelProvider initialZones={zones}>
+      <AudioAlertManager />
       <div className="flex h-screen w-screen flex-col bg-background text-foreground">
         <Header />
         <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 lg:overflow-hidden">
