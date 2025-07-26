@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -43,11 +44,11 @@ export default function DashboardPage() {
   return (
     <DrishtiSentinelProvider initialZones={zones}>
       <AudioAlertManager />
-      <div className="flex h-screen w-screen flex-col bg-background text-foreground">
+      <div className="flex h-screen w-screen flex-col bg-background text-foreground overflow-y-auto">
         <Header />
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 lg:overflow-hidden">
+        <main className="flex-1 grid grid-cols-1 xl:grid-cols-3 gap-4 p-4">
           {/* Left & Center Column: Feeds and Status */}
-          <div className="lg:col-span-2 flex flex-col gap-4 lg:overflow-y-auto">
+          <div className="xl:col-span-2 flex flex-col gap-4">
             {/* Camera Feeds Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <LiveCameraFeed ref={zoneARef} key={zones[0].id} zoneId={zones[0].id} />
@@ -61,7 +62,7 @@ export default function DashboardPage() {
           </div>
           
           {/* Right Column: Security Control Panel & Alerts */}
-          <div className="lg:col-span-1 flex flex-col gap-4 lg:overflow-y-auto">
+          <div className="xl:col-span-1 flex flex-col gap-4">
              <SecurityControlPanel zoneARef={zoneARef} zoneBRef={zoneBRef}/>
              <AlertsPanel />
           </div>
