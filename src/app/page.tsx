@@ -15,25 +15,17 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // This is a placeholder for real authentication logic.
-    // In a real app, you'd check for a token in localStorage or a cookie.
     const loggedIn = localStorage.getItem('authenticated');
     if (loggedIn) {
       setIsAuthenticated(true);
     } else {
-      // If not authenticated, you might want to redirect to login.
-      // For this-step-by-step build, we assume they came from the login page.
-      // You could add `useRouter` and `router.push('/login')` here.
-    }
-  }, []);
-
-  // You can show a loader or redirect here
-  if (!isAuthenticated && typeof window !== 'undefined' && !localStorage.getItem('authenticated')) {
-     // A simple redirect. For a better UX, consider a loading spinner
-     // while checking auth state.
      if (typeof window !== "undefined") {
        window.location.href = "/login";
      }
+    }
+  }, []);
+
+  if (!isAuthenticated) {
      return null;
   }
 
@@ -47,7 +39,7 @@ export default function Home() {
               <LiveCameraFeed key={zone.id} zoneId={zone.id} />
             ))}
           </div>
-          <aside className="w-full max-w-md border-l flex flex-col">
+          <aside className="w-full max-w-md border-l border-border flex flex-col">
             <SecurityControlPanel />
           </aside>
         </main>
