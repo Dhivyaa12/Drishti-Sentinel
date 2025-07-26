@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2, Users } from 'lucide-react';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { analyzeCameraFeed } from '@/ai/flows/analyze-camera-feed';
+import { analyzeCrowdDensity } from '@/ai/flows/crowd-density-analysis';
 import { Separator } from '../ui/separator';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
@@ -45,21 +45,11 @@ export function CrowdDensityAnalysis() {
     try {
       const analysisPromises = zones.map(async (zone) => {
         const dataUri = await getFrameAsDataUri(zone.id);
-        const analysisResult = await analyzeCameraFeed({ photoDataUri: dataUri, zone: zone.name });
+        const analysisResult = await analyzeCrowdDensity({ photoDataUri: dataUri, zone: zone.name });
         
-        let headCount = 0;
-        let densityLevel: 'low' | 'medium' | 'high' = 'low';
-
-        if (analysisResult.anomalyType === 'overcrowd' || analysisResult.anomalyType === 'crowd_gathering') {
-            const countMatch = analysisResult.description.match(/\d+/);
-            headCount = countMatch ? parseInt(countMatch[0], 10) : 0;
-            if (headCount > 6) densityLevel = 'high';
-            else if (headCount > 2) densityLevel = 'medium';
-        }
-
         return {
-          headCount,
-          densityLevel,
+          headCount: analysisResult.headCount,
+          densityLevel: analysisResult.densityCategory.toLowerCase() as 'low' | 'medium' | 'high',
           report: analysisResult.description,
           zoneId: zone.id,
           zoneName: zone.name,
