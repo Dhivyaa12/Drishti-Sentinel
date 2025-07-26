@@ -7,6 +7,7 @@ import { SecurityControlPanel } from '@/components/feature/SecurityControlPanel'
 import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
 import { ZoneStatusTable } from '@/components/feature/zone-status-table';
 import { Card } from '@/components/ui/card';
+import { AlertsPanel } from '@/components/feature/AlertsPanel';
 
 const zones = [
   { id: 'zone-a', name: 'Zone A', type: 'webcam', alarmSilenced: false },
@@ -36,7 +37,7 @@ export default function Home() {
       <div className="flex h-screen w-screen flex-col bg-background text-foreground">
         <Header />
         <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 lg:overflow-hidden">
-          {/* Left Column: Feeds and Status */}
+          {/* Left & Center Column: Feeds and Status */}
           <div className="lg:col-span-2 flex flex-col gap-4 lg:overflow-y-auto">
             {/* Camera Feeds Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -49,6 +50,11 @@ export default function Home() {
             <Card>
               <ZoneStatusTable />
             </Card>
+
+            {/* Alerts Panel Section (Now at the bottom of the left/center column) */}
+            <div className="bg-card rounded-lg border lg:overflow-y-auto">
+              <AlertsPanel />
+            </div>
           </div>
           
           {/* Right Column: Security Control Panel Section */}

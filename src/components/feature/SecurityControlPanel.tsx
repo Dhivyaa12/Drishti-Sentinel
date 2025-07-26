@@ -4,8 +4,6 @@ import { CrowdDensityAnalysis } from './CrowdDensityAnalysis';
 import { FaceMatching } from './FaceMatching';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShieldCheck, Users, ScanFace } from 'lucide-react';
-import { AlertsPanel } from './AlertsPanel';
-import { BellRing } from 'lucide-react';
 
 export function SecurityControlPanel() {
   return (
@@ -15,16 +13,12 @@ export function SecurityControlPanel() {
           <ShieldCheck className="h-5 w-5 text-primary" />
           Security Control Panel
         </h3>
-        <p className="text-sm text-muted-foreground">Central hub for alerts and analysis.</p>
+        <p className="text-sm text-muted-foreground">Select a tool for advanced security analysis.</p>
       </div>
 
-      <Tabs defaultValue="alerts" className="flex-1 flex flex-col">
+      <Tabs defaultValue="crowd-density" className="flex-1 flex flex-col">
         <div className="px-4 pt-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="alerts">
-              <BellRing className="mr-2 h-4 w-4" />
-              Alerts
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="crowd-density">
               <Users className="mr-2 h-4 w-4" />
               Crowd Density
@@ -35,10 +29,6 @@ export function SecurityControlPanel() {
             </TabsTrigger>
           </TabsList>
         </div>
-
-        <TabsContent value="alerts" className="flex-1 flex flex-col overflow-y-auto">
-          <AlertsPanel />
-        </TabsContent>
 
         <TabsContent value="crowd-density" className="flex-1 overflow-y-auto">
           <CrowdDensityAnalysis />
