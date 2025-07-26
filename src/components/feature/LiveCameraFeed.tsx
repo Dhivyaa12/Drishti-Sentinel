@@ -220,14 +220,6 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
     useImperativeHandle(ref, () => ({
       captureFrame,
     }));
-    
-    useEffect(() => {
-        const intervalId = setInterval(() => {
-            runScan();
-        }, 30000); // 30 seconds
-
-        return () => clearInterval(intervalId);
-    }, [runScan]);
 
     if (!zone) return null;
 
