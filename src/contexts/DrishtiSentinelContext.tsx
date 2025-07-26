@@ -75,6 +75,10 @@ export const DrishtiSentinelProvider = ({
     }
   }, [toast]);
 
+  const getZoneById = useCallback((zoneId: string) => {
+    return zones.find(zone => zone.id === zoneId);
+  }, [zones]);
+  
   useEffect(() => {
     const latestAlert = alerts[0];
     if (latestAlert && latestAlert.id !== lastHighRiskAlertId.current) {
@@ -141,10 +145,6 @@ export const DrishtiSentinelProvider = ({
       })
     );
   }, []);
-  
-  const getZoneById = useCallback((zoneId: string) => {
-    return zones.find(zone => zone.id === zoneId);
-  }, [zones]);
 
   const getLatestAlertForZone = useCallback((zoneId: string) => {
     return alerts.find(alert => alert.zoneId === zoneId);
