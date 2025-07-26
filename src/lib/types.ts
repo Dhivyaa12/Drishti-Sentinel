@@ -64,7 +64,8 @@ export type AnomalyType =
     | "building_destruction"
     | "flood"
     | "other"
-    | "none";
+    | "none"
+    | "head_covered";
 
 export interface AnalyzeCameraFeedInput {
     photoDataUri: string;

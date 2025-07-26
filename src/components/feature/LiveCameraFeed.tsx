@@ -102,6 +102,55 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
       }
     }, [zone?.name, zone?.type, toast]);
 
+    const runScan = useCallback(async () => {
+        if (!zone || isProcessing(zone.id) || !isCamReady) return;
+    
+        setProcessing(zone.id, true);
+        updateZoneStatus(zone.id, { status: 'Analyzing...' });
+    
+        const frame = await captureFrame();
+        if (!frame) {
+            addAlert({ type: 'System Error', zoneId: zone.id, description: 'Failed to capture frame.', riskLevel: 'medium', location: zone.name });
+            setProcessing(zone.id, false);
+            updateZoneStatus(zone.id, { status: 'Error capturing frame' });
+            return;
+        }
+    
+        try {
+            const result = await analyzeCameraFeed({ photoDataUri: frame, zone: zone.name });
+            
+            updateZoneStatus(zone.id, {
+                status: result.isAnomaly ? 'Anomaly Detected' : 'Monitoring...',
+                riskLevel: result.riskLevel,
+                anomaly: result.anomalyType,
+                description: result.description,
+            });
+
+            if (result.isAnomaly) {
+                addAlert({ 
+                    type: result.anomalyType, 
+                    description: result.description,
+                    riskLevel: result.riskLevel,
+                    zoneId: zone.id,
+                    location: zone.name
+                });
+                if(result.riskLevel === 'high' || result.riskLevel === 'critical') {
+                    if (setBuzzerZone) {
+                        setBuzzerZone(zone.id)
+                    };
+                    handleEmergencyCall(`Threat detected in ${zone.name}: ${result.description}`);
+                }
+            }
+    
+        } catch (error) {
+            console.error('AI analysis failed:', error);
+            addAlert({ type: 'System Error', zoneId: zone.id, description: 'AI analysis failed.', riskLevel: 'medium', location: zone.name });
+            updateZoneStatus(zone.id, { status: 'AI analysis failed' });
+        } finally {
+            setProcessing(zone.id, false);
+        }
+    }, [zone, isProcessing, setProcessing, addAlert, captureFrame, setBuzzerZone, updateZoneStatus, handleEmergencyCall]);
+
     useEffect(() => {
       if (zone?.type === 'ip-camera') {
         const img = imageRef.current;
@@ -171,57 +220,14 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
     useImperativeHandle(ref, () => ({
       captureFrame,
     }));
+    
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            runScan();
+        }, 30000); // 30 seconds
 
-    const runScan = useCallback(async () => {
-        if (!zone || isProcessing(zone.id)) return;
-    
-        setProcessing(zone.id, true);
-        updateZoneStatus(zone.id, { status: 'Analyzing...' });
-    
-        const frame = await captureFrame();
-        if (!frame) {
-            addAlert({ type: 'System Error', zoneId: zone.id, description: 'Failed to capture frame.', riskLevel: 'medium', location: zone.name });
-            setProcessing(zone.id, false);
-            updateZoneStatus(zone.id, { status: 'Error capturing frame' });
-            return;
-        }
-    
-        try {
-            const result = await analyzeCameraFeed({ photoDataUri: frame, zone: zone.name });
-            
-            updateZoneStatus(zone.id, {
-                status: result.isAnomaly ? 'Anomaly Detected' : 'Monitoring...',
-                riskLevel: result.riskLevel,
-                anomaly: result.anomalyType,
-                description: result.description,
-            });
-
-            if (result.isAnomaly) {
-                addAlert({ 
-                    type: result.anomalyType, 
-                    description: result.description,
-                    riskLevel: result.riskLevel,
-                    zoneId: zone.id,
-                    location: zone.name
-                });
-                if(result.riskLevel === 'high' || result.riskLevel === 'critical') {
-                    if (setBuzzerZone) {
-                        setBuzzerZone(zone.id)
-                    };
-                    handleEmergencyCall(`Threat detected in ${zone.name}: ${result.description}`);
-                }
-            } else {
-                toast({ title: 'All Clear', description: `No anomalies detected in ${zone.name}.`});
-            }
-    
-        } catch (error) {
-            console.error('AI analysis failed:', error);
-            addAlert({ type: 'System Error', zoneId: zone.id, description: 'AI analysis failed.', riskLevel: 'medium', location: zone.name });
-            updateZoneStatus(zone.id, { status: 'AI analysis failed' });
-        } finally {
-            setProcessing(zone.id, false);
-        }
-    }, [zone, isProcessing, setProcessing, addAlert, captureFrame, setBuzzerZone, toast, updateZoneStatus, handleEmergencyCall]);
+        return () => clearInterval(intervalId);
+    }, [runScan]);
 
     if (!zone) return null;
 

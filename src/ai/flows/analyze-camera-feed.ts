@@ -17,7 +17,7 @@ const AnomalyTypesSchema = z.enum([
     "panic_run", "loitering", "crowd_gathering", "fall_detected", "fight",
     "reverse_flow", "entry_breach", "object_abandon", "overcrowd",
     "rapid_dispersion", "hand_cover_face", "cover_eyes", "fire",
-    "building_destruction", "flood", "other", "none"
+    "building_destruction", "flood", "other", "none", "head_covered"
 ]);
 
 const AnalyzeCameraFeedInputSchema = z.object({
@@ -53,13 +53,13 @@ Image: {{media url=photoDataUri}}
 Zone: {{{zone}}}
 
 Your analysis must cover three areas:
-1.  **General Anomalies**: Detect one of the following: panic_run, loitering, crowd_gathering, fall_detected, fight, reverse_flow, entry_breach, object_abandon, overcrowd, rapid_dispersion, hand_cover_face, cover_eyes, fire, building_destruction, flood, or other. If none, use "none". Set 'isAnomaly' to true if any are found.
+1.  **General Anomalies**: Detect one of the following: panic_run, loitering, crowd_gathering, fall_detected, fight, reverse_flow, entry_breach, object_abandon, overcrowd, rapid_dispersion, hand_cover_face, cover_eyes, fire, building_destruction, flood, head_covered, or other. If none, use "none". Set 'isAnomaly' to true if any are found.
 2.  **Fire Detection**: Specifically look for fire or smoke. Set 'fireDetected' to true if present.
-3.  **Facial Expressions**: Analyze visible faces for strong emotions like 'anger' or 'fear'. Set 'isStrongEmotion' to true if detected and name the 'dominantEmotion'.
+3.  **Facial Expressions & Coverings**: Analyze visible faces for strong emotions like 'anger' or 'fear'. Also detect if a face is being intentionally covered, hidden, or if the head is covered. Set 'isStrongEmotion' to true if strong emotions are detected.
 
 Based on your complete analysis:
 - Provide a consolidated 'description' of the most significant event. If nothing is found, briefly describe the scene.
-- Assign a single, overall 'riskLevel' (Normal, Medium, High, Critical) based on the most severe threat detected. Fire is always 'Critical'. Strong emotions are 'High'. Other anomalies vary.
+- Assign a single, overall 'riskLevel' (Normal, low, medium, high, critical) based on the most severe threat detected. Fire is always 'critical'. Strong emotions, face covering, or building destruction are 'high'. Other anomalies vary.
 
 Format your output as a single JSON object matching the following schema:
 ${JSON.stringify(AnalyzeCameraFeedOutputSchema.describe())}
