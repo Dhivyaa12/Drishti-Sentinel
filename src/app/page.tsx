@@ -7,7 +7,7 @@ import { SecurityControlPanel } from '@/components/feature/SecurityControlPanel'
 import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
 import { ZoneStatusTable } from '@/components/feature/zone-status-table';
 import { Card } from '@/components/ui/card';
-import { AlertsPanel } from '@/components/feature/AlertsPanel';
+import AlertsPanel from '@/components/feature/AlertsPanel';
 import AudioAlertManager from '@/components/feature/AudioAlertManager';
 
 const zones = [
@@ -59,7 +59,7 @@ export default function Home() {
             <div className="bg-card rounded-lg border flex-shrink-0">
               <SecurityControlPanel />
             </div>
-            <div className="bg-card rounded-lg border flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col">
               <AlertsPanel />
             </div>
           </div>
