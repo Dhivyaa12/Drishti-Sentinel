@@ -23,6 +23,12 @@ The application is designed to provide a seamless experience for security operat
     *   A prominent **SOS** button allows the operator to manually trigger a critical alert across all zones.
 6.  **Zone Status**: A detailed table provides an at-a-glance overview of the current status, risk level, and last detected anomaly for each monitored zone.
 
+USE THESE LINKS FOR TESTING:
+
+FIRE: https://drive.google.com/file/d/1RZM5AQRK_uEvIskJLG_sl-lBmeGiverD/view?usp=sharing
+
+BUILDING DESTRUCTION: https://youtu.be/MYQLMLt-R1s?si=3XedUZVz73WmGrmm 
+
 ## Tech Stack
 
 Drishti Sentinel is built on a modern, robust tech stack designed for performance and scalability.
