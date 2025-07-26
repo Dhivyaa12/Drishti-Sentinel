@@ -2,7 +2,7 @@
 
 import { BellRing, ShieldX } from 'lucide-react';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertItem } from './AlertItem';
 

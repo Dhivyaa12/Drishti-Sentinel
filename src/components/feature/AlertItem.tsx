@@ -2,9 +2,8 @@
 
 import { Alert as AlertType, RiskLevel } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Flame, Users, ScanFace, Frown, Siren, MapPin, Clock } from 'lucide-react';
 import { MapPlaceholder } from './MapPlaceholder';
@@ -25,6 +24,8 @@ const iconMap: { [key: string]: React.ElementType } = {
   fight: Frown,
   panic: Frown,
   default: Siren,
+  'crowd report': Users,
+  'sos signal': Siren,
 };
 
 export function AlertItem({ alert }: { alert: AlertType }) {
@@ -52,7 +53,7 @@ export function AlertItem({ alert }: { alert: AlertType }) {
               <div className="text-xs text-muted-foreground flex items-center gap-4 mt-1">
                 <div className="flex items-center gap-1.5">
                     <MapPin className="w-3 h-3" />
-                    <span>{zone?.name || 'Unknown Zone'}</span>
+                    <span>{zone?.name || alert.location || 'Unknown Zone'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                     <Clock className="w-3 h-3" />
@@ -63,33 +64,46 @@ export function AlertItem({ alert }: { alert: AlertType }) {
           </CardHeader>
         </Card>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[625px]">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center gap-3">
             <Icon className="w-6 h-6" />
             Alert Details: {alert.type}
           </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-            <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">Risk Level</p>
-                <Badge variant={riskVariantMap[alert.riskLevel]} className="capitalize text-base">{alert.riskLevel}</Badge>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+            <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">Risk Level</p>
+                    <Badge variant={riskVariantMap[alert.riskLevel]} className="capitalize text-base">{alert.riskLevel}</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">Timestamp</p>
+                    <p className="font-mono text-sm">{new Date(alert.timestamp).toLocaleString()}</p>
+                </div>
+                <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">Zone / Location</p>
+                    <p className="text-sm font-medium">{zone?.name || alert.location || 'Unknown'}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground mb-1">Description</p>
+                    <p className="text-base">{alert.description}</p>
+                </div>
+                 <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(alert.location)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline flex items-center gap-2"
+                >
+                    <MapPin className="w-4 h-4"/>
+                    Open in Google Maps
+                </a>
             </div>
-            <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">Timestamp</p>
-                <p className="font-mono text-sm">{new Date(alert.timestamp).toLocaleString()}</p>
-            </div>
-             <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">Zone</p>
-                <p className="text-sm font-medium">{zone?.name || 'Unknown Zone'}</p>
-            </div>
-            <div>
-                <p className="text-sm text-muted-foreground mb-1">Description</p>
-                <p className="text-base">{alert.description}</p>
-            </div>
-            <div>
-                <p className="text-sm text-muted-foreground mb-2">Location</p>
-                <MapPlaceholder />
+            <div className="space-y-2">
+                 <p className="text-sm text-muted-foreground mb-1">Event Location</p>
+                 <div className="h-full min-h-[250px] w-full">
+                    <MapPlaceholder />
+                </div>
             </div>
         </div>
       </DialogContent>
