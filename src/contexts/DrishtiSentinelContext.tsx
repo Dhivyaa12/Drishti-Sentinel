@@ -26,28 +26,6 @@ interface DrishtiSentinelContextType {
 
 const DrishtiSentinelContext = createContext<DrishtiSentinelContextType | undefined>(undefined);
 
-// Mock coordinates for demo purposes
-const zoneCoordinates: { [key: string]: GeolocationCoordinates } = {
-  'zone-a': {
-    latitude: 28.6139,
-    longitude: 77.2090,
-    accuracy: 10,
-    altitude: null,
-    altitudeAccuracy: null,
-    heading: null,
-    speed: null,
-  },
-  'zone-b': {
-    latitude: 19.0760,
-    longitude: 72.8777,
-    accuracy: 10,
-    altitude: null,
-    altitudeAccuracy: null,
-    heading: null,
-    speed: null,
-  },
-};
-
 export const DrishtiSentinelProvider = ({
   children,
   initialZones,
@@ -120,12 +98,13 @@ export const DrishtiSentinelProvider = ({
   }, [alerts, zones, handleEmergencyCall]);
 
   const addAlert = useCallback((alertData: Omit<Alert, 'id' | 'timestamp'>) => {
+    const zone = getZoneById(alertData.zoneId);
     const newAlert: Alert = {
       ...alertData,
       id: `alert-${Date.now()}-${Math.random()}`,
       timestamp: new Date().toISOString(),
-      coordinates: zoneCoordinates[alertData.zoneId] || (location || undefined),
-      location: alertData.location || (location ? `${location.latitude}, ${location.longitude}`: 'Unknown'),
+      coordinates: location || undefined,
+      location: alertData.location || (location ? `${location.latitude}, ${location.longitude}`: (zone?.name || 'Unknown')),
     };
     setAlerts(prev => [newAlert, ...prev].slice(0, 50));
     
@@ -138,7 +117,7 @@ export const DrishtiSentinelProvider = ({
         description,
     });
 
-  }, [location, updateZoneStatus]);
+  }, [location, updateZoneStatus, getZoneById]);
 
   const toggleAlarmSilence = useCallback((zoneId: string) => {
     setZones(prev =>
