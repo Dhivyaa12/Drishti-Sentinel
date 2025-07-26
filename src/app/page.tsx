@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Header } from '@/components/feature/Header';
-import { LiveCameraFeed } from '@/components/feature/LiveCameraFeed';
+import { LiveCameraFeed, LiveCameraFeedRef } from '@/components/feature/LiveCameraFeed';
 import { SecurityControlPanel } from '@/components/feature/SecurityControlPanel';
 import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
 import { ZoneStatusTable } from '@/components/feature/zone-status-table';
@@ -17,6 +17,8 @@ const zones = [
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const zoneARef = useRef<LiveCameraFeedRef>(null);
+  const zoneBRef = useRef<LiveCameraFeedRef>(null);
 
   useEffect(() => {
     const loggedIn = localStorage.getItem('authenticated');
@@ -43,9 +45,8 @@ export default function Home() {
           <div className="lg:col-span-2 flex flex-col gap-4 lg:overflow-y-auto">
             {/* Camera Feeds Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {zones.map((zone) => (
-                <LiveCameraFeed key={zone.id} zoneId={zone.id} />
-              ))}
+              <LiveCameraFeed ref={zoneARef} key={zones[0].id} zoneId={zones[0].id} />
+              <LiveCameraFeed ref={zoneBRef} key={zones[1].id} zoneId={zones[1].id} />
             </div>
             
             {/* Zone Status Section */}
@@ -56,12 +57,8 @@ export default function Home() {
           
           {/* Right Column: Security Control Panel & Alerts */}
           <div className="lg:col-span-1 flex flex-col gap-4 lg:overflow-y-auto">
-            <div className="bg-card rounded-lg border flex-shrink-0">
-              <SecurityControlPanel />
-            </div>
-            <div className="flex-1 flex flex-col">
-              <AlertsPanel />
-            </div>
+             <SecurityControlPanel zoneARef={zoneARef} zoneBRef={zoneBRef} />
+             <AlertsPanel />
           </div>
         </main>
       </div>
