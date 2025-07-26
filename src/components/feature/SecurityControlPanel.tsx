@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CrowdDensityAnalysis } from './CrowdDensityAnalysis';
 import { FaceMatching } from './FaceMatching';
-import { ShieldCheck, ListVideo, BellRing, User, Users, ScanFace, Flame } from 'lucide-react';
+import { ShieldCheck, ListVideo, BellRing, Users, ScanFace } from 'lucide-react';
 
 export function SecurityControlPanel() {
   return (

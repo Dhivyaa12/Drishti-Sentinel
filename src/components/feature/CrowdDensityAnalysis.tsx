@@ -34,6 +34,8 @@ export function CrowdDensityAnalysis() {
       }
     }
     if (zone.type === 'ip-camera' && zone.ipAddress) {
+      // Note: This fetches the image again. For real-time streams, this is correct.
+      // If it were a static image, we could optimize.
       return urlToDataUri(zone.ipAddress);
     }
     return urlToDataUri(placeholderImageUrl);
@@ -53,7 +55,19 @@ export function CrowdDensityAnalysis() {
     try {
       const dataUri = await getFrameAsDataUri(selectedZoneId);
       const analysisResult = await analyzeCrowdDensity({ photoDataUri: dataUri, zoneDescription: zone.name });
-      const newResult = { ...analysisResult, timestamp: new Date().toISOString() };
+      
+      // Determine density level based on head count
+      let densityLevel: 'low' | 'medium' | 'high';
+      if (analysisResult.headCount <= 2) {
+        densityLevel = 'low';
+      } else if (analysisResult.headCount <= 6) {
+        densityLevel = 'medium';
+      } else {
+        densityLevel = 'high';
+      }
+
+      const newResult = { ...analysisResult, densityLevel, timestamp: new Date().toISOString() };
+
 
       setResult(newResult);
       setHistory(prev => [...prev, newResult].slice(-10)); // Keep last 10 results
