@@ -33,7 +33,7 @@ interface LiveCameraFeedProps {
 
 const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
   ({ zoneId }, ref) => {
-    const { getZoneById, addAlert, toggleZoneSource, isProcessing, setProcessing, buzzerOnForZone, setBuzzerZone } = useDrishti();
+    const { getZoneById, addAlert, toggleZoneSource, isProcessing, setProcessing, buzzerOnForZone, setBuzzerZone, updateZoneStatus, handleEmergencyCall } = useDrishti();
     const zone = getZoneById(zoneId);
 
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -50,6 +50,58 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
         setStreamError(null);
     }, [zone?.ipAddress, zone?.type]);
 
+    const captureFrame = useCallback(async (): Promise<string | null> => {
+      const canvas = document.createElement('canvas');
+      let mediaElement: HTMLVideoElement | HTMLImageElement | null = null;
+    
+      if (zone?.type === 'webcam' && videoRef.current) {
+        mediaElement = videoRef.current;
+        canvas.width = mediaElement.videoWidth;
+        canvas.height = mediaElement.videoHeight;
+      } else if (zone?.type === 'ip-camera' && imageRef.current) {
+        mediaElement = imageRef.current;
+        canvas.width = mediaElement.naturalWidth;
+        canvas.height = mediaElement.naturalHeight;
+      }
+    
+      if (!mediaElement) {
+        toast({
+          variant: 'destructive',
+          title: 'Frame Capture Error',
+          description: `Could not get media element for ${zone?.name}.`,
+        });
+        return null;
+      }
+    
+      try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get canvas context');
+    
+        if (zone?.type === 'ip-camera') {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.src = imageRef.current?.src || '';
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+            });
+            ctx.drawImage(img, 0, 0);
+        } else {
+             ctx.drawImage(mediaElement as HTMLVideoElement, 0, 0, canvas.width, canvas.height);
+        }
+        
+        return canvas.toDataURL('image/jpeg');
+      } catch (error) {
+        console.error('Error capturing frame:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Frame Capture Failed',
+            description: 'Could not convert canvas to data URL. The IP camera may have CORS issues.',
+        });
+        return null;
+      }
+    }, [zone?.name, zone?.type, toast]);
+
     useEffect(() => {
       if (zone?.type === 'ip-camera') {
         const img = imageRef.current;
@@ -59,6 +111,7 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
           img.addEventListener("load", handleLoad);
           img.addEventListener("error", handleError);
           if (zone.ipAddress) {
+            // Add a timestamp to bypass browser cache for the IP camera stream
             img.src = `${zone.ipAddress}?timestamp=${new Date().getTime()}`;
           }
           return () => {
@@ -115,15 +168,6 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
       }
     }, [zone?.type, zone?.ipAddress, toast, key]);
     
-    const captureFrame = async (): Promise<string | null> => {
-      // This function now needs a way to get the data URI.
-      // For now, we will return a placeholder.
-      // In a real implementation, you would need to get the frame from the video element or IP camera.
-      return Promise.resolve(
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
-      );
-    };
-
     useImperativeHandle(ref, () => ({
       captureFrame,
     }));
@@ -132,17 +176,26 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
         if (!zone || isProcessing(zone.id)) return;
     
         setProcessing(zone.id, true);
+        updateZoneStatus(zone.id, { status: 'Analyzing...' });
     
         const frame = await captureFrame();
         if (!frame) {
             addAlert({ type: 'System Error', zoneId: zone.id, description: 'Failed to capture frame.', riskLevel: 'medium', location: zone.name });
             setProcessing(zone.id, false);
+            updateZoneStatus(zone.id, { status: 'Error capturing frame' });
             return;
         }
     
         try {
             const result = await analyzeCameraFeed({ photoDataUri: frame, zone: zone.name });
             
+            updateZoneStatus(zone.id, {
+                status: result.isAnomaly ? 'Anomaly Detected' : 'Monitoring...',
+                riskLevel: result.riskLevel,
+                anomaly: result.anomalyType,
+                description: result.description,
+            });
+
             if (result.isAnomaly) {
                 addAlert({ 
                     type: result.anomalyType, 
@@ -152,7 +205,10 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
                     location: zone.name
                 });
                 if(result.riskLevel === 'high' || result.riskLevel === 'critical') {
-                    if (setBuzzerZone) setBuzzerZone(zone.id);
+                    if (setBuzzerZone) {
+                        setBuzzerZone(zone.id)
+                    };
+                    handleEmergencyCall(`Threat detected in ${zone.name}: ${result.description}`);
                 }
             } else {
                 toast({ title: 'All Clear', description: `No anomalies detected in ${zone.name}.`});
@@ -161,10 +217,11 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
         } catch (error) {
             console.error('AI analysis failed:', error);
             addAlert({ type: 'System Error', zoneId: zone.id, description: 'AI analysis failed.', riskLevel: 'medium', location: zone.name });
+            updateZoneStatus(zone.id, { status: 'AI analysis failed' });
         } finally {
             setProcessing(zone.id, false);
         }
-    }, [zone, isProcessing, setProcessing, addAlert, captureFrame, setBuzzerZone, toast]);
+    }, [zone, isProcessing, setProcessing, addAlert, captureFrame, setBuzzerZone, toast, updateZoneStatus, handleEmergencyCall]);
 
     if (!zone) return null;
 
@@ -196,7 +253,7 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
         }
         
         const videoElement = zone.type === 'ip-camera' ? (
-            <img ref={imageRef} className="w-full h-full object-cover rounded-md" alt={`Live feed from ${zone.name}`}/>
+            <img ref={imageRef} className="w-full h-full object-cover rounded-md" alt={`Live feed from ${zone.name}`} crossOrigin="anonymous"/>
         ) : (
             <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover rounded-md transform scale-x-[-1]" />
         );
@@ -230,7 +287,7 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
             <div className="aspect-video w-full">
                 {renderFeed()}
             </div>
-            {buzzerOnForZone === zone.id && setBuzzerZone && (
+            {(buzzerOnForZone === zone.id || buzzerOnForZone === 'all-zones') && setBuzzerZone && (
                 <div className="absolute top-2 left-2 flex items-center gap-2">
                     <Button 
                         size="sm" 

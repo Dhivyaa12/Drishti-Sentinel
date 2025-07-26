@@ -21,6 +21,7 @@ interface DrishtiSentinelContextType {
   setProcessing: (zoneId: string, status: boolean) => void;
   buzzerOnForZone: string | null;
   setBuzzerZone: (zoneId: string | null) => void;
+  handleEmergencyCall: (reason: string) => void;
 }
 
 const DrishtiSentinelContext = createContext<DrishtiSentinelContextType | undefined>(undefined);
@@ -85,11 +86,15 @@ export const DrishtiSentinelProvider = ({
 
   const handleEmergencyCall = useCallback((eventDescription: string) => {
     // Mock emergency call
-    console.log('MOCK_CALL_SERVICE: Calling emergency services. Reason: ' + eventDescription);
+    console.log('MOCK_CALL_SERVICE: Calling emergency services (100). Reason: ' + eventDescription);
     toast({
-        title: 'Emergency Call Service',
-        description: `Successfully initiated emergency call.`,
+        variant: "destructive",
+        title: 'Emergency Action Required!',
+        description: `Auto-calling emergency contact: 100`,
     });
+     if (typeof window !== 'undefined') {
+        window.location.href = `tel:100`;
+    }
   }, [toast]);
 
   useEffect(() => {
@@ -123,7 +128,17 @@ export const DrishtiSentinelProvider = ({
       location: alertData.location || (location ? `${location.latitude}, ${location.longitude}`: 'Unknown'),
     };
     setAlerts(prev => [newAlert, ...prev].slice(0, 50));
-  }, [location]);
+    
+    // Update zone status based on alert
+    const { zoneId, riskLevel, type, description } = newAlert;
+    updateZoneStatus(zoneId, {
+        status: 'Alert Triggered',
+        riskLevel,
+        anomaly: type,
+        description,
+    });
+
+  }, [location, updateZoneStatus]);
 
   const toggleAlarmSilence = useCallback((zoneId: string) => {
     setZones(prev =>
@@ -207,7 +222,8 @@ export const DrishtiSentinelProvider = ({
       isProcessing,
       setProcessing,
       buzzerOnForZone,
-      setBuzzerZone
+      setBuzzerZone,
+      handleEmergencyCall
     }}>
       {children}
     </DrishtiSentinelContext.Provider>
