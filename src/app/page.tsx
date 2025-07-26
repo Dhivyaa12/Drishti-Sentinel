@@ -41,13 +41,13 @@ export default function Home() {
     <DrishtiSentinelProvider initialZones={zones}>
       <div className="flex h-screen w-screen flex-col bg-background text-foreground">
         <Header />
-        <main className="flex flex-1 flex-col lg:flex-row overflow-hidden">
+        <main className="flex flex-1 overflow-hidden">
           <div className="flex-1 p-4 grid grid-cols-1 xl:grid-cols-2 gap-6 overflow-y-auto">
             {zones.map((zone) => (
               <LiveCameraFeed key={zone.id} zoneId={zone.id} />
             ))}
           </div>
-          <aside className="w-full lg:w-[450px] lg:max-w-[33%] border-l flex flex-col">
+          <aside className="w-full max-w-md border-l flex flex-col">
             <SecurityControlPanel />
           </aside>
         </main>
