@@ -11,13 +11,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, UserCheck, UserX, ScanFace } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { analyzeCameraFeed } from '@/ai/flows/analyze-camera-feed';
+import { faceMatch } from '@/ai/flows/face-matching';
 import { Progress } from '../ui/progress';
 
 const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
 
 export function FaceMatching() {
-  const { zones, addAlert } = useDrishti();
+  const { zones, addAlert, getZoneById } = useDrishti();
   const [personPhoto, setPersonPhoto] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<FaceMatchResult | null>(null);
@@ -37,9 +37,9 @@ export function FaceMatching() {
   };
 
    const getFrameAsDataUri = async (zoneId: string): Promise<string> => {
-    // This function now needs a way to get the data URI.
-    // For now, we will return a placeholder.
-    // In a real implementation, you would need to get the frame from the video element or IP camera.
+    // In a real implementation, you would get the frame from the video element or IP camera.
+    // The LiveCameraFeed component has a `captureFrame` method that can be called via a ref.
+    // For this prototype, we'll continue to use a placeholder.
     return Promise.resolve(placeholderImageUrl);
   }
 
@@ -54,48 +54,52 @@ export function FaceMatching() {
     toast({ title: 'Scanning all zones for face match...' });
     
     try {
-      // This is a mock implementation.
-      // In a real application, you would pass both images to the AI.
-      // For now, we simulate a check with the consolidated flow.
-      const results = await Promise.all(zones.map(async (zone) => {
-        const liveFeedDataUri = await getFrameAsDataUri(zone.id);
-        const analysisResult = await analyzeCameraFeed({ photoDataUri: liveFeedDataUri, zone: zone.name });
+        const zoneA = zones.find(z => z.name === 'Zone A');
+        const zoneB = zones.find(z => z.name === 'Zone B');
+
+        if(!zoneA || !zoneB) {
+            throw new Error("Zone A or Zone B not found");
+        }
         
-        // Mocking face match based on strong emotion detection
-        const mockConfidence = analysisResult.isStrongEmotion ? Math.random() * 0.3 + 0.7 : Math.random() * 0.4;
-        
-        return { 
-            matchFound: mockConfidence > 0.7,
-            confidenceScore: mockConfidence,
-            timestamp: new Date().toISOString(),
-            frameDataUri: liveFeedDataUri, 
-            zoneName: zone.name, 
-            zoneId: zone.id 
-        };
-      }));
+        const [zoneADataUri, zoneBDataUri] = await Promise.all([
+            getFrameAsDataUri(zoneA.id),
+            getFrameAsDataUri(zoneB.id)
+        ]);
       
-      const bestMatch = results.reduce((prev, current) => {
-        return (prev.confidenceScore || 0) > (current.confidenceScore || 0) ? prev : current;
-      }, { confidenceScore: -1 } as any);
+      const analysisResult = await faceMatch({
+          targetPhotoDataUri: personPhoto,
+          zoneADataUri,
+          zoneBDataUri
+      });
 
-      setResult({ ...bestMatch, personPhotoDataUri: personPhoto });
+      const matchInA = analysisResult.matchConfidenceZoneA > 75;
+      const matchInB = analysisResult.matchConfidenceZoneB > 75;
+      const matchFound = matchInA || matchInB;
+      const bestMatchZone = analysisResult.matchConfidenceZoneA > analysisResult.matchConfidenceZoneB ? zoneA : zoneB;
 
-      if (bestMatch.matchFound && bestMatch.confidenceScore > 0.75) {
+      const finalResult: FaceMatchResult = {
+        matchFound,
+        confidenceScore: Math.max(analysisResult.matchConfidenceZoneA, analysisResult.matchConfidenceZoneB) / 100,
+        timestamp: new Date().toISOString(),
+        frameDataUri: analysisResult.matchConfidenceZoneA > analysisResult.matchConfidenceZoneB ? zoneADataUri : zoneBDataUri,
+        personPhotoDataUri: personPhoto,
+        zoneId: bestMatchZone.id,
+        zoneName: bestMatchZone.name,
+      };
+
+      setResult(finalResult);
+
+      if (matchFound) {
         toast({
-          title: `High-Confidence Match Found in ${bestMatch.zoneName}!`,
-          description: `Confidence: ${((bestMatch.confidenceScore || 0) * 100).toFixed(0)}%`,
+          title: `High-Confidence Match Found in ${finalResult.zoneName}!`,
+          description: `Confidence: ${(finalResult.confidenceScore * 100).toFixed(0)}%`,
         });
         addAlert({
           type: 'Face Match',
-          description: `Person of interest found in ${bestMatch.zoneName} with ${((bestMatch.confidenceScore || 0) * 100).toFixed(0)}% confidence.`,
+          description: `Person of interest found in ${finalResult.zoneName} with ${(finalResult.confidenceScore * 100).toFixed(0)}% confidence.`,
           riskLevel: 'high',
-          zoneId: bestMatch.zoneId,
-          location: bestMatch.zoneName,
-        });
-      } else if (bestMatch.matchFound) {
-         toast({
-          title: `Potential Match Found in ${bestMatch.zoneName}`,
-          description: `Confidence: ${((bestMatch.confidenceScore || 0) * 100).toFixed(0)}%`,
+          zoneId: finalResult.zoneId!,
+          location: finalResult.zoneName,
         });
       } else {
         toast({ title: 'No Match Found', description: 'The person of interest was not detected in any zone.' });
