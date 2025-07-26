@@ -6,31 +6,33 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export async function urlToDataUri(url: string): Promise<string> {
-    // Using a simple proxy to bypass CORS issues for development.
-    // In a production environment, you might need a more robust solution.
-    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-    try {
-        const response = await fetch(proxyUrl + url);
-        if (!response.ok) {
-            console.error(`HTTP error! status: ${response.status} for url: ${url}`);
-             // Fallback to placeholder if fetch fails
-            return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-        }
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
+    // Using a different proxy to bypass CORS issues.
+    // Note: It's generally better to have the IP camera stream on a server that sets the correct CORS headers.
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = function() {
             const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
+            reader.onloadend = function() {
+                resolve(reader.result as string);
+            }
             reader.onerror = (error) => {
                 console.error("FileReader error:", error);
-                reject(error);
+                // Fallback to placeholder on reader error
+                resolve("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
             };
-            reader.readAsDataURL(blob);
-        });
-    } catch (error) {
-        console.error("Failed to fetch or convert URL to Data URI:", error);
-        // Return a placeholder or transparent pixel on error
-        return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-    }
+            reader.readAsDataURL(xhr.response);
+        };
+        xhr.onerror = function() {
+            console.error(`XHR error! Failed to fetch from proxy for url: ${url}`);
+            // Fallback to placeholder on fetch error
+            resolve("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
+        };
+        xhr.open('GET', proxyUrl);
+        xhr.responseType = 'blob';
+        xhr.send();
+    });
 }
 
 
