@@ -33,13 +33,16 @@ export default function Home() {
     <DrishtiSentinelProvider initialZones={zones}>
       <div className="flex h-screen w-screen flex-col bg-background text-foreground">
         <Header />
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 overflow-hidden">
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto">
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 lg:overflow-hidden">
+          {/* Camera Feeds Section */}
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 lg:overflow-y-auto">
             {zones.map((zone) => (
               <LiveCameraFeed key={zone.id} zoneId={zone.id} />
             ))}
           </div>
-          <div className="lg:col-span-1 bg-card rounded-lg border overflow-y-auto">
+          
+          {/* Security Control Panel Section */}
+          <div className="lg:col-span-1 bg-card rounded-lg border lg:overflow-y-auto">
             <SecurityControlPanel />
           </div>
         </main>
