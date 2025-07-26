@@ -149,13 +149,15 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
           )}
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-start">
-            <p className="text-sm text-muted-foreground mb-2">Detect events like fire, loitering, fights, or panic in the current frame.</p>
+      <CardFooter>
+        <div className="w-full space-y-2">
+            <p className="text-sm text-muted-foreground">Detect events like fire, loitering, or panic in the current frame.</p>
             <Button className="w-full" onClick={handleAnomalyDetection} disabled={isProcessing}>
               {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <ScanSearch className="w-4 h-4 mr-2"/>
               Scan for Anomalies
             </Button>
+        </div>
       </CardFooter>
     </Card>
   );
