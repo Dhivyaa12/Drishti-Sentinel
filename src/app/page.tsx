@@ -7,8 +7,8 @@ import { AlertsPanel } from '@/components/feature/AlertsPanel';
 import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
 
 const zones = [
-  { id: 'zone-1', name: 'Zone 1: Main Entrance', type: 'webcam', alarmSilenced: false },
-  { id: 'zone-2', name: 'Zone 2: Perimeter West', type: 'ip-camera', alarmSilenced: false, ipAddress: 'http://192.168.137.161:8080/video' },
+  { id: 'zone-a', name: 'Zone A', type: 'webcam', alarmSilenced: false },
+  { id: 'zone-b', name: 'Zone B', type: 'ip-camera', alarmSilenced: false, ipAddress: 'http://192.168.137.161:8080/video' },
 ];
 
 export default function Home() {
