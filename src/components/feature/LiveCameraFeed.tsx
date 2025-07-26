@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Loader2, Monitor, ScanSearch, Users, Volume2, VolumeX, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
+import { Loader2, Monitor, ScanSearch, Users, Volume2, VolumeX, AlertTriangle, ShieldCheck, Info, ScanFace } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { urlToDataUri, captureVideoFrame } from '@/lib/utils';
 import { detectAnomalies } from '@/ai/flows/detect-anomalies';
@@ -204,13 +204,13 @@ export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
         </Card>
       </CardContent>
       <CardFooter>
-        <Tabs defaultValue="anomaly" className="w-full">
+        <Tabs defaultValue="scan" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="anomaly"><ScanSearch className="w-4 h-4 mr-2"/>Anomaly</TabsTrigger>
+            <TabsTrigger value="scan"><ScanSearch className="w-4 h-4 mr-2"/>Scan</TabsTrigger>
             <TabsTrigger value="crowd"><Users className="w-4 h-4 mr-2"/>Crowd</TabsTrigger>
-            <TabsTrigger value="face">Face Match</TabsTrigger>
+            <TabsTrigger value="face"><ScanFace className="w-4 h-4 mr-2"/>Face</TabsTrigger>
           </TabsList>
-          <TabsContent value="anomaly" className="pt-4">
+          <TabsContent value="scan" className="pt-4">
             <p className="text-sm text-muted-foreground mb-4">Detect events like fire, loitering, fights, or panic in the current frame.</p>
             <Button className="w-full" onClick={handleAnomalyDetection} disabled={isProcessing.anomaly}>
               {isProcessing.anomaly && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

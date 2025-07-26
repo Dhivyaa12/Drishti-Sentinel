@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/feature/Header';
 import { LiveCameraFeed } from '@/components/feature/LiveCameraFeed';
-import { AlertsPanel } from '@/components/feature/AlertsPanel';
+import { SecurityControlPanel } from '@/components/feature/SecurityControlPanel';
 import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
 
 const zones = [
@@ -48,7 +48,7 @@ export default function Home() {
             ))}
           </div>
           <aside className="w-full lg:w-[450px] lg:max-w-[33%] border-l flex flex-col">
-            <AlertsPanel />
+            <SecurityControlPanel />
           </aside>
         </main>
       </div>
