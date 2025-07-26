@@ -2,10 +2,10 @@
 
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
-import { FaceMatchResult } from '@/lib/types';
+import type { FaceMatchResult } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, UserCheck, UserX, ScanFace, Upload } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
@@ -19,7 +19,7 @@ interface FaceMatchingProps {
   zoneBRef: React.RefObject<LiveCameraFeedRef>;
 }
 
-export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
+export function FaceMatching({ zoneARef }: FaceMatchingProps) {
   const { zones, addAlert } = useDrishti();
   const [personPhoto, setPersonPhoto] = useState<string | null>(null);
   const [personPhotoName, setPersonPhotoName] = useState<string | null>(null);
@@ -45,13 +45,9 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
     fileInputRef.current?.click();
   };
 
-   const getFrameAsDataUri = async (zoneId: string): Promise<string | null> => {
-    const zone = zones.find(z => z.id === zoneId);
-    if (!zone) return null;
-
-    const ref = zone.name === 'Zone A' ? zoneARef : zoneBRef;
-    if (ref.current) {
-        return ref.current.captureFrame();
+   const getFrameAsDataUri = async (zoneRef: React.RefObject<LiveCameraFeedRef>): Promise<string | null> => {
+    if (zoneRef.current) {
+        return zoneRef.current.captureFrame();
     }
     return null;
   }
@@ -68,12 +64,13 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
     
     try {
         const zoneA = zones.find(z => z.name === 'Zone A');
-
-        if(!zoneA) {
-            throw new Error("Zone A not found");
+        if (!zoneA) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Could not find Zone A.' });
+             setIsProcessing(false);
+             return;
         }
         
-        const zoneADataUri = await getFrameAsDataUri(zoneA.id);
+        const zoneADataUri = await getFrameAsDataUri(zoneARef);
         
         if (!zoneADataUri) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not capture frame from Zone A.' });
@@ -88,33 +85,32 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
 
       const matchFound = (analysisResult.matchConfidence || 0) > 75;
 
-      const finalResult: FaceMatchResult = {
-        matchFound,
-        confidenceScore: (analysisResult.matchConfidence || 0) / 100,
-        timestamp: analysisResult.timestamp || new Date().toISOString(),
-        frameDataUri: zoneADataUri,
-        personPhotoDataUri: personPhoto,
-        zoneId: zoneA.id,
-        zoneName: analysisResult.zoneName,
-      };
-
-      setResult(finalResult);
-
       if (matchFound) {
         toast({
-          title: `High-Confidence Match Found in ${finalResult.zoneName}!`,
-          description: `Confidence: ${(finalResult.confidenceScore * 100).toFixed(0)}%`,
+          title: `High-Confidence Match Found in ${analysisResult.zoneName}!`,
+          description: `Confidence: ${(analysisResult.matchConfidence || 0).toFixed(0)}%`,
         });
         addAlert({
           type: 'Face Match',
-          description: `Person of interest found in ${finalResult.zoneName} with ${(finalResult.confidenceScore * 100).toFixed(0)}% confidence.`,
+          description: `Person of interest found in ${analysisResult.zoneName} with ${(analysisResult.matchConfidence || 0).toFixed(0)}% confidence.`,
           riskLevel: 'high',
-          zoneId: finalResult.zoneId!,
-          location: finalResult.zoneName,
+          zoneId: zoneA.id,
+          location: analysisResult.zoneName,
         });
       } else {
-        toast({ title: 'No Match Found', description: `The person of interest was not detected in ${analysisResult.zoneName}.` });
+        toast({ title: 'No Match Found', description: `The person of interest was not detected in Zone A.` });
       }
+
+      setResult({
+        matchFound,
+        confidenceScore: (analysisResult.matchConfidence || 0) / 100,
+        timestamp: analysisResult.timestamp || new Date().toISOString(),
+        zoneId: zoneA.id,
+        zoneName: analysisResult.zoneName,
+        frameDataUri: zoneADataUri,
+        personPhotoDataUri: personPhoto,
+      });
+
 
     } catch (error) {
       console.error('Face matching failed:', error);
@@ -123,7 +119,7 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
       setIsProcessing(false);
     }
   };
-
+  
   return (
     <div className="p-4 space-y-4">
        <div className="flex items-center gap-2">
@@ -166,16 +162,30 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
       
       {result && (
         <Card>
-            <CardContent className="p-4 space-y-4">
-                <div className={`flex items-center gap-2 font-semibold text-lg ${result.matchFound ? 'text-accent' : 'text-destructive'}`}>
-                    {result.matchFound ? <UserCheck /> : <UserX />}
-                    <span>{result.matchFound ? 'Match Found' : 'No Match Found'}</span>
+            <CardHeader>
+                <CardTitle className="text-base">Matching Result</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 space-y-4">
+                 <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                        <span className="text-xs text-muted-foreground">Person of Interest</span>
+                        <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted border">
+                            {personPhoto && <Image src={personPhoto} alt="Person of Interest" layout="fill" objectFit="cover" />}
+                        </div>
+                    </div>
                 </div>
+                <Separator />
+                <div key={result.zoneId} className="space-y-4">
+                    <h3 className="font-semibold text-lg">{result.zoneName}</h3>
+                    <div className={`flex items-center gap-2 font-semibold text-md ${result.matchFound ? 'text-accent' : 'text-destructive'}`}>
+                        {result.matchFound ? <UserCheck /> : <UserX />}
+                        <span>{result.matchFound ? 'Match Found' : 'No Match Found'}</span>
+                    </div>
 
-                {result.matchFound && result.timestamp && (
-                     <div className="text-sm space-y-2">
-                        <div className="flex justify-between items-center"><span>Zone:</span> <span className="font-bold text-foreground">{result.zoneName}</span></div>
-                        <div className="flex justify-between items-center"><span>Appearance Time:</span> <span className="font-mono text-foreground">{new Date(result.timestamp).toLocaleString()}</span></div>
+                    <div className="text-sm space-y-2">
+                        {result.matchFound && result.timestamp && (
+                            <div className="flex justify-between items-center"><span>Appearance Time:</span> <span className="font-mono text-foreground">{new Date(result.timestamp).toLocaleString()}</span></div>
+                        )}
                         <div>
                             <span className="text-xs">Confidence</span>
                             <div className="flex items-center gap-2">
@@ -183,21 +193,10 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
                                 <span className="font-bold text-foreground text-xs w-12 text-right">{((result.confidenceScore || 0) * 100).toFixed(0)}%</span>
                             </div>
                         </div>
-                     </div>
-                )}
-                <Separator />
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div>
-                        <span className="text-xs text-muted-foreground">Person of Interest</span>
-                        <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted border">
-                            {result.personPhotoDataUri && <Image src={result.personPhotoDataUri} alt="Person of Interest" layout="fill" objectFit="cover" />}
-                        </div>
                     </div>
-                     <div>
-                        <span className="text-xs text-muted-foreground">{result.matchFound ? `Matched Frame from ${result.zoneName}` : "Best Candidate Frame"}</span>
-                        <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted border">
-                            {result.frameDataUri && <Image src={result.frameDataUri} alt="Matched Frame" layout="fill" objectFit="cover" />}
-                        </div>
+                    
+                    <div className="aspect-video relative mt-1 rounded-md overflow-hidden bg-muted border">
+                        {result.frameDataUri && <Image src={result.frameDataUri} alt={`Scanned frame from ${result.zoneName}`} layout="fill" objectFit="cover" />}
                     </div>
                 </div>
             </CardContent>
