@@ -33,7 +33,7 @@ const FaceMatchOutputSchema = z.object({
         .describe('The confidence percentage (0-100) of a face match in the zone.'),
     zoneName: z
         .string()
-        .describe('The name of the zone where the face match was attempted.'),
+        .describe('The name of the zone where the face match was attempted (e.g., "Zone A").'),
     timestamp: z
         .string()
         .optional()
@@ -55,16 +55,15 @@ const faceMatchPrompt = ai.definePrompt({
 
 You are provided with a target photo and a snapshot from Zone A.
 
-Analyze the image and determine if the target face is present in the zone.
+Analyze the zone's snapshot to determine if the target face is present.
 
 Target Photo: {{media url=targetPhotoDataUri}}
 Zone A Snapshot: {{media url=zoneADataUri}}
 
-Provide a confidence percentage (0-100) for the zone, indicating the likelihood of a face match.
+Provide a confidence percentage (0-100) indicating the likelihood of a face match.
 If a match is found, provide a timestamp for when the face was seen. If no match is found, leave the timestamp field blank.
-The zoneName should be "Zone A".
 
-Ensure your output matches the following schema:
+Return your response as a single JSON object. Ensure your output matches the following schema:
 ${JSON.stringify(FaceMatchOutputSchema.describe, null, 2)}`,
 });
 
@@ -75,7 +74,7 @@ const faceMatchFlow = ai.defineFlow(
     outputSchema: FaceMatchOutputSchema,
   },
   async input => {
-    const {output} = await faceMatchPrompt(input);
+    const {output} = await faceMatchPrompt({...input, zoneName: 'Zone A'});
     return output!;
   }
 );
