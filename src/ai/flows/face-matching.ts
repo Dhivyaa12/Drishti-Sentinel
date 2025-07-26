@@ -28,6 +28,7 @@ const FaceMatchOutputSchema = z.object({
   matchFound: z.boolean().describe('Whether a match was found in the live feed.'),
   confidenceScore: z
     .number()
+    .nullable()
     .describe('The confidence score of the match (0-1), or null if no match was found.'),
   timestamp: z.string().optional().describe('The ISO 8601 timestamp of when the match occurred, or null if no match was found.'),
 });
