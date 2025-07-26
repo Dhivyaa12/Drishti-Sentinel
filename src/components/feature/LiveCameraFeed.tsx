@@ -1,184 +1,274 @@
-'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Loader2, Monitor, ScanSearch } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { urlToDataUri, captureVideoFrame } from '@/lib/utils';
-import { detectAnomalies } from '@/ai/flows/detect-anomalies';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Switch } from '../ui/switch';
-import { Label } from '../ui/label';
+"use client";
 
-const placeholderImageUrl = 'https://placehold.co/1280x720/1a2a3a/ffffff';
+import React, {
+  useRef,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useCallback
+} from "react";
+import { cn } from "@/lib/utils";
+import { Camera, VideoOff, WifiOff, Loader2, Scan, BellOff } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { Zone } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Button } from "@/components/ui/button";
+import { useDrishti } from "@/contexts/DrishtiSentinelContext";
+import { detectAnomalies } from "@/ai/flows/detect-anomalies";
+import { captureVideoFrame, urlToDataUri } from "@/lib/utils";
 
-export function LiveCameraFeed({ zoneId }: { zoneId: string }) {
-  const { getZoneById, addAlert, toggleZoneSource } = useDrishti();
-  const zone = getZoneById(zoneId);
-  const { toast } = useToast();
-  
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+export interface LiveCameraFeedRef {
+  captureFrame: () => Promise<string | null>;
+}
 
-  useEffect(() => {
-    if (zone?.type !== 'webcam') {
-        if (videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-            videoRef.current.srcObject = null;
+interface LiveCameraFeedProps {
+  zoneId: string;
+}
+
+const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
+  ({ zoneId }, ref) => {
+    const { getZoneById, addAlert, toggleZoneSource, handleSos, isProcessing, setProcessing, buzzerOnForZone, setBuzzerZone } = useDrishti();
+    const zone = getZoneById(zoneId);
+
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const imageRef = useRef<HTMLImageElement>(null);
+    const [streamError, setStreamError] = useState<string | null>(null);
+    const [hasCameraPermission, setHasCameraPermission] = useState(true);
+    const [isCamReady, setIsCamReady] = useState(false);
+    const { toast } = useToast();
+    const [key, setKey] = useState(Math.random());
+
+    useEffect(() => {
+        setKey(Math.random());
+        setIsCamReady(false);
+        setStreamError(null);
+    }, [zone?.ipAddress, zone?.type]);
+
+    useEffect(() => {
+      if (zone?.type === 'ip-camera') {
+        const img = imageRef.current;
+        if (img) {
+          const handleLoad = () => { setIsCamReady(true); setStreamError(null); };
+          const handleError = () => { setStreamError("IP camera stream failed. Check URL and network."); setIsCamReady(false); };
+          img.addEventListener("load", handleLoad);
+          img.addEventListener("error", handleError);
+          if (zone.ipAddress) {
+            img.src = `${zone.ipAddress}?timestamp=${new Date().getTime()}`;
+          }
+          return () => {
+            img.removeEventListener("load", handleLoad);
+            img.removeEventListener("error", handleError);
+          };
         }
         return;
-    };
-
-    const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setHasCameraPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this app.',
-        });
       }
-    };
-
-    getCameraPermission();
-
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-    }
-  }, [zone?.type, toast]);
-
-
-  if (!zone) return null;
-
-  const getFrameAsDataUri = async (): Promise<string> => {
-    if (zone.type === 'webcam' && videoRef.current) {
-      return captureVideoFrame(videoRef.current);
-    }
-    if (zone.type === 'ip-camera' && zone.ipAddress) {
-      return urlToDataUri(zone.ipAddress);
-    }
-    return urlToDataUri(placeholderImageUrl);
-  }
-
-  const handleAnomalyDetection = async () => {
-    setIsProcessing(true);
-    toast({ title: 'Analyzing for anomalies...', description: `Scanning ${zone.name}.` });
-    try {
-      const dataUri = await getFrameAsDataUri();
-      const result = await detectAnomalies({ cameraFeedDataUri: dataUri, zone: zone.name });
       
-      if (result.anomalies && result.anomalies.length > 0) {
-        result.anomalies.forEach(anomaly => {
-          addAlert({ ...anomaly, zoneId: zone.id });
-        });
-        toast({
-          variant: 'destructive',
-          title: `${result.anomalies.length} Anomaly Detected!`,
-          description: `High-risk event identified in ${zone.name}.`,
-        });
-      } else {
-        toast({ title: 'Analysis Complete', description: `No anomalies detected in ${zone.name}.` });
-      }
-    } catch (error) {
-      console.error('Anomaly detection failed:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to analyze feed.' });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleSourceToggle = (useIpCam: boolean) => {
-    toggleZoneSource(zone.id, useIpCam ? 'ip-camera' : 'webcam');
-  };
+      const getCameraPermission = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({video: true});
+          setHasCameraPermission(true);
+          setStreamError(null);
   
-  const isIpCam = zone.type === 'ip-camera';
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.onloadedmetadata = () => {
+                videoRef.current?.play().catch(err => {
+                    console.error("Video play failed:", err);
+                    setStreamError("Could not start camera feed.");
+                    setIsCamReady(false);
+                });
+            };
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          setStreamError("Webcam access denied or not available.");
+          setIsCamReady(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this app.',
+          });
+        }
+      };
+  
+      getCameraPermission();
 
-  return (
-    <Card className="flex flex-col" data-zone-id={zone.id}>
-      <CardHeader className="flex-row items-start justify-between">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Monitor className="h-5 w-5 text-primary" /> {zone.name}
-          </CardTitle>
-          <CardDescription>{zone.type === 'webcam' ? 'Webcam Feed' : `IP: ${zone.ipAddress}`}</CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col gap-4">
-        <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted relative">
-          {zone.type === 'webcam' ? (
+      const videoEl = videoRef.current;
+      const handleCanPlay = () => {
+        setIsCamReady(true);
+      }
+      videoEl?.addEventListener('canplay', handleCanPlay);
+      
+      return () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach((track) => track.stop());
+        }
+        videoEl?.removeEventListener('canplay', handleCanPlay);
+      }
+    }, [zone?.type, zone?.ipAddress, toast, key]);
+    
+    const captureFrame = async (): Promise<string | null> => {
+      if (zone?.type === 'ip-camera' && zone.ipAddress) {
+        return urlToDataUri(zone.ipAddress);
+      }
+    
+      if (zone?.type === 'webcam' && videoRef.current) {
+        return captureVideoFrame(videoRef.current);
+      }
+    
+      return null;
+    };
+
+    useImperativeHandle(ref, () => ({
+      captureFrame,
+    }));
+
+    const runScan = useCallback(async () => {
+      if (!zone || isProcessing) return;
+  
+      setProcessing(true);
+  
+      const frame = await captureFrame();
+      if (!frame) {
+        addAlert({ type: 'System Error', zoneId: zone.id, description: 'Failed to capture frame.', riskLevel: 'medium', location: zone.name });
+        setProcessing(false);
+        return;
+      }
+  
+      try {
+        const result = await detectAnomalies({ cameraFeedDataUri: frame, zone: zone.name });
+        
+        if (result.anomalies && result.anomalies.length > 0) {
+            result.anomalies.forEach(anomaly => {
+                addAlert({ ...anomaly, zoneId: zone.id });
+                if(anomaly.riskLevel === 'high' || anomaly.riskLevel === 'critical') {
+                    if (setBuzzerZone) setBuzzerZone(zone.id);
+                }
+            });
+        } else {
+            toast({ title: 'All Clear', description: `No anomalies detected in ${zone.name}.`});
+        }
+  
+      } catch (error) {
+        console.error('AI analysis failed:', error);
+        addAlert({ type: 'System Error', zoneId: zone.id, description: 'AI analysis failed.', riskLevel: 'medium', location: zone.name });
+      } finally {
+        setProcessing(false);
+      }
+    }, [zone, isProcessing, setProcessing, addAlert, captureFrame, setBuzzerZone, toast]);
+
+    if (!zone) return null;
+
+    const renderFeed = () => {
+        if (streamError && zone.type === 'webcam') {
+            return (
+                <div className="flex flex-col items-center justify-center h-full bg-muted/50 rounded-md">
+                    <VideoOff className="w-12 h-12 text-destructive" />
+                    <p className="mt-2 text-sm text-muted-foreground text-center px-2">{streamError}</p>
+                     {!hasCameraPermission && (
+                        <Alert variant="destructive" className="mt-4">
+                            <AlertTitle>Camera Access Required</AlertTitle>
+                            <AlertDescription>
+                                Please allow camera access to use this feature.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </div>
+            );
+        }
+
+        if (streamError && zone.type === 'ip-camera') {
+             return (
+                <div className="flex flex-col items-center justify-center h-full bg-muted/50 rounded-md">
+                    <WifiOff className="w-12 h-12 text-destructive" />
+                    <p className="mt-2 text-sm text-muted-foreground text-center px-2">{streamError}</p>
+                </div>
+            );
+        }
+        
+        const videoElement = zone.type === 'ip-camera' ? (
+            <img ref={imageRef} className="w-full h-full object-cover rounded-md" alt={`Live feed from ${zone.name}`}/>
+        ) : (
+            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover rounded-md transform scale-x-[-1]" />
+        );
+
+        return (
             <>
-              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-              {hasCameraPermission === false && (
-                <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-                    <Alert variant="destructive" className="max-w-md">
-                        <AlertTitle>Camera Access Denied</AlertTitle>
-                        <AlertDescription>
-                            Please allow camera access in your browser to use this feature.
-                        </AlertDescription>
-                    </Alert>
+                {!isCamReady && !streamError && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center h-full bg-muted/50 rounded-md animate-pulse">
+                        <Camera className="w-12 h-12 text-muted-foreground" />
+                        <p className="mt-2 text-sm text-muted-foreground">Initializing camera...</p>
+                    </div>
+                )}
+                <div className="w-full h-full">
+                    {videoElement}
                 </div>
-              )}
+                 {isProcessing && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <div className="text-center text-white">
+                            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-2" />
+                            <p className="font-semibold">AI Analysis in Progress...</p>
+                        </div>
+                    </div>
+                )}
             </>
-          ) : (
-             zone.ipAddress && (
-              <Image
-                src={zone.ipAddress}
-                alt={`Live feed from ${zone.name}`}
-                layout="fill"
-                objectFit="cover"
-                priority
-                unoptimized // Required for IP camera streams
-                data-ai-hint="security camera"
-                key={zone.ipAddress} // Force re-render on IP change
-              />
-            )
-          )}
-          {isProcessing && (
-             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                <div className="text-center text-white">
-                    <Loader2 className="h-12 w-12 animate-spin mx-auto mb-2" />
-                    <p className="font-semibold">AI Analysis in Progress...</p>
-                </div>
+        )
+    }
+
+    const content = (
+        <>
+            <CardContent className="p-0 flex-1 relative">
+            <div className="aspect-video w-full">
+                {renderFeed()}
             </div>
-          )}
-        </div>
-      </CardContent>
-      <CardFooter>
-        <div className="w-full space-y-2">
-            {zone.configurable && (
-              <div className="flex items-center justify-between">
-                <Label htmlFor={`ip-cam-switch-${zone.id}`} className="text-sm text-muted-foreground">Use IP Cam</Label>
-                <Switch
-                  id={`ip-cam-switch-${zone.id}`}
-                  checked={isIpCam}
-                  onCheckedChange={handleSourceToggle}
-                  aria-label="Toggle between IP camera and webcam"
-                />
-              </div>
+            {buzzerOnForZone === zone.id && setBuzzerZone && (
+                <div className="absolute top-2 left-2 flex items-center gap-2">
+                    <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={() => setBuzzerZone(null)}
+                        className="animate-pulse"
+                    >
+                        <BellOff className="mr-2 h-4 w-4" />
+                        Stop Alarm
+                    </Button>
+                </div>
             )}
-            <p className="text-sm text-muted-foreground pt-2">Detect events like fire, loitering, or panic in the current frame.</p>
-            <Button className="w-full" onClick={handleAnomalyDetection} disabled={isProcessing}>
-              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <ScanSearch className="w-4 h-4 mr-2"/>
+            </CardContent>
+            <CardFooter className="p-2 flex flex-col items-stretch space-y-2">
+            <Button onClick={runScan} disabled={isProcessing || !isCamReady} className="w-full">
+              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />}
               Scan for Anomalies
             </Button>
-        </div>
-      </CardFooter>
-    </Card>
-  );
-}
+            </CardFooter>
+        </>
+    );
+
+    return (
+      <Card className="overflow-hidden shadow-lg flex flex-col" data-zone-id={zone.id} key={key}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+          <CardTitle className="text-lg font-medium">{zone.name}</CardTitle>
+          <div className="flex items-center gap-2">
+            {isCamReady && (
+                <Badge variant="default" className={cn("bg-green-500/80", { 'bg-blue-500/80': zone.type === 'ip-camera' })}>
+                    {zone.type === 'ip-camera' ? 'IP CAM' : 'LIVE'}
+                </Badge>
+            )}
+            <Camera className="h-5 w-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        {content}
+      </Card>
+    );
+  }
+);
+
+LiveCameraFeed.displayName = "LiveCameraFeed";
+export { LiveCameraFeed };
+
