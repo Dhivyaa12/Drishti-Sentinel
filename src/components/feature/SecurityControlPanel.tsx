@@ -1,12 +1,11 @@
 'use client';
 
 import { AlertsPanel } from './AlertsPanel';
-import { ZoneStatusTable } from './zone-status-table';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CrowdDensityAnalysis } from './CrowdDensityAnalysis';
 import { FaceMatching } from './FaceMatching';
-import { ShieldCheck, ListVideo, BellRing, Users, ScanFace, SlidersHorizontal } from 'lucide-react';
+import { ShieldCheck, BellRing, SlidersHorizontal } from 'lucide-react';
 
 export function SecurityControlPanel() {
   return (
@@ -21,11 +20,7 @@ export function SecurityControlPanel() {
         
         <Tabs defaultValue="alerts" className="flex-1 flex flex-col">
           <div className="px-4 pt-4">
-            <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="status">
-                    <ListVideo className="mr-2 h-4 w-4"/>
-                    Status
-                </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="alerts">
                     <BellRing className="mr-2 h-4 w-4"/>
                     Alerts
@@ -37,10 +32,6 @@ export function SecurityControlPanel() {
             </TabsList>
           </div>
           
-          <TabsContent value="status" className="flex-1 overflow-y-auto">
-            <ZoneStatusTable />
-          </TabsContent>
-
           <TabsContent value="alerts" className="flex-1 flex flex-col overflow-y-auto">
              <AlertsPanel />
           </TabsContent>

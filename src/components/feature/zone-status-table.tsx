@@ -1,7 +1,7 @@
 'use client';
 
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { RiskLevel } from '@/lib/types';
@@ -19,12 +19,14 @@ export function ZoneStatusTable() {
   const { zones, getLatestAlertForZone } = useDrishti();
 
   return (
-    <div className="p-4">
-        <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
-            <ListVideo className="h-5 w-5" />
-            Zone Status Overview
-        </h3>
-        <Card>
+    <div className="p-0">
+        <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2 mb-2">
+                <ListVideo className="h-5 w-5" />
+                Zone Status Overview
+            </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -63,7 +65,7 @@ export function ZoneStatusTable() {
                     })}
                 </TableBody>
             </Table>
-        </Card>
+        </CardContent>
     </div>
   );
 }
