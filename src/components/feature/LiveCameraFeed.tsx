@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { useDrishti } from "@/contexts/DrishtiSentinelContext";
 import { detectAnomalies } from "@/ai/flows/detect-anomalies";
 import { captureVideoFrame, urlToDataUri } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export interface LiveCameraFeedRef {
   captureFrame: () => Promise<string | null>;
@@ -31,7 +33,7 @@ interface LiveCameraFeedProps {
 
 const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
   ({ zoneId }, ref) => {
-    const { getZoneById, addAlert, toggleZoneSource, handleSos, isProcessing, setProcessing, buzzerOnForZone, setBuzzerZone } = useDrishti();
+    const { getZoneById, addAlert, toggleZoneSource, isProcessing, setProcessing, buzzerOnForZone, setBuzzerZone } = useDrishti();
     const zone = getZoneById(zoneId);
 
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -255,6 +257,18 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
           <CardTitle className="text-lg font-medium">{zone.name}</CardTitle>
           <div className="flex items-center gap-2">
+            {zone.configurable && toggleZoneSource && (
+              <div className="flex items-center space-x-2">
+                <Label htmlFor={`cam-switch-${zone.id}`} className="text-xs">IP Cam</Label>
+                <Switch
+                  id={`cam-switch-${zone.id}`}
+                  checked={zone.type === 'webcam'}
+                  onCheckedChange={(isChecked) => toggleZoneSource(zone.id, isChecked ? 'webcam' : 'ip-camera')}
+                  aria-label="Toggle camera source"
+                />
+                 <Label htmlFor={`cam-switch-${zone.id}`} className="text-xs">Lap Cam</Label>
+              </div>
+            )}
             {isCamReady && (
                 <Badge variant="default" className={cn("bg-green-500/80", { 'bg-blue-500/80': zone.type === 'ip-camera' })}>
                     {zone.type === 'ip-camera' ? 'IP CAM' : 'LIVE'}
@@ -272,3 +286,4 @@ const LiveCameraFeed = forwardRef<LiveCameraFeedRef, LiveCameraFeedProps>(
 LiveCameraFeed.displayName = "LiveCameraFeed";
 export { LiveCameraFeed };
 
+    
