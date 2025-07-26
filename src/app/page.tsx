@@ -50,16 +50,16 @@ export default function Home() {
             <Card>
               <ZoneStatusTable />
             </Card>
-
-            {/* Alerts Panel Section (Now at the bottom of the left/center column) */}
-            <div className="bg-card rounded-lg border lg:overflow-y-auto">
-              <AlertsPanel />
-            </div>
           </div>
           
-          {/* Right Column: Security Control Panel Section */}
-          <div className="lg:col-span-1 bg-card rounded-lg border lg:overflow-y-auto">
-            <SecurityControlPanel />
+          {/* Right Column: Security Control Panel & Alerts */}
+          <div className="lg:col-span-1 flex flex-col gap-4 lg:overflow-y-auto">
+            <div className="bg-card rounded-lg border flex-shrink-0">
+              <SecurityControlPanel />
+            </div>
+            <div className="bg-card rounded-lg border flex-1 flex flex-col">
+              <AlertsPanel />
+            </div>
           </div>
         </main>
       </div>
