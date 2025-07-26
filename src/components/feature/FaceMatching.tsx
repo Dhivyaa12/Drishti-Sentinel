@@ -5,15 +5,14 @@ import Image from 'next/image';
 import { FaceMatchResult } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, UserCheck, UserX, ScanFace } from 'lucide-react';
+import { Loader2, UserCheck, UserX, ScanFace, Upload } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useDrishti } from '@/contexts/DrishtiSentinelContext';
 import { faceMatch } from '@/ai/flows/face-matching';
 import { Progress } from '../ui/progress';
 import { LiveCameraFeedRef } from './LiveCameraFeed';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 interface FaceMatchingProps {
   zoneARef: React.RefObject<LiveCameraFeedRef>;
@@ -23,6 +22,7 @@ interface FaceMatchingProps {
 export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
   const { zones, addAlert } = useDrishti();
   const [personPhoto, setPersonPhoto] = useState<string | null>(null);
+  const [personPhotoName, setPersonPhotoName] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<FaceMatchResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,6 +31,7 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setPersonPhotoName(file.name);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPersonPhoto(reader.result as string);
@@ -38,6 +39,10 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
    const getFrameAsDataUri = async (zoneId: string): Promise<string | null> => {
@@ -131,28 +136,42 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
     <div className="p-4 space-y-4">
        <div className="flex items-center gap-2">
         <ScanFace className="h-5 w-5" />
-        <h4 className="font-semibold">Face Matching</h4>
+        <h4 className="font-semibold">Face Matching Tool</h4>
       </div>
-      <p className="text-sm text-muted-foreground">Upload a photo to scan all live feeds for a matching person.</p>
+      <p className="text-sm text-muted-foreground">Upload a photo to find a person of interest across all camera feeds.</p>
       
-      <div className="space-y-2">
-        <Label htmlFor="face-photo">Person of Interest Photo</Label>
-        <Input id="face-photo" type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="file:text-primary"/>
-      </div>
-      
-      <Button className="w-full" onClick={handleAnalysis} disabled={isProcessing || !personPhoto}>
-        {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Analyze for Match
-      </Button>
-
-      {personPhoto && !result && (
-        <div className="flex justify-center p-4">
-            <div className="w-32 h-32 relative rounded-md overflow-hidden border-2 border-primary bg-muted">
-                <Image src={personPhoto} alt="Person of Interest preview" layout="fill" objectFit="cover" />
+        <div className="space-y-4">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" onClick={handleUploadClick}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Photo
+                </Button>
+                <input
+                    id="face-photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    ref={fileInputRef}
+                    className="hidden"
+                />
+                {personPhoto && personPhotoName && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                       <Avatar className="h-8 w-8">
+                            <AvatarImage src={personPhoto} alt="Person of interest" />
+                            <AvatarFallback>P</AvatarFallback>
+                        </Avatar>
+                        <span className="truncate max-w-xs">{personPhotoName}</span>
+                    </div>
+                )}
             </div>
+            
+            <Button className="w-full" onClick={handleAnalysis} disabled={isProcessing || !personPhoto}>
+                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <ScanFace className="mr-2 h-4 w-4" />
+                Analyze for Match
+            </Button>
         </div>
-      )}
-
+      
       {result && (
         <Card>
             <CardContent className="p-4 space-y-4">
@@ -166,7 +185,7 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
                         <div className="flex justify-between items-center"><span>Zone:</span> <span className="font-bold text-foreground">{result.zoneName}</span></div>
                         <div className="flex justify-between items-center"><span>Appearance Time:</span> <span className="font-mono text-foreground">{new Date(result.timestamp).toLocaleString()}</span></div>
                         <div>
-                            <Label className="text-xs">Confidence</Label>
+                            <span className="text-xs">Confidence</span>
                             <div className="flex items-center gap-2">
                                 <Progress value={(result.confidenceScore || 0) * 100} className="w-full h-2" />
                                 <span className="font-bold text-foreground text-xs w-12 text-right">{((result.confidenceScore || 0) * 100).toFixed(0)}%</span>
@@ -177,13 +196,13 @@ export function FaceMatching({ zoneARef, zoneBRef }: FaceMatchingProps) {
                 <Separator />
                 <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
-                        <Label className="text-xs text-muted-foreground">Person of Interest</Label>
+                        <span className="text-xs text-muted-foreground">Person of Interest</span>
                         <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted border">
                             {result.personPhotoDataUri && <Image src={result.personPhotoDataUri} alt="Person of Interest" layout="fill" objectFit="cover" />}
                         </div>
                     </div>
                      <div>
-                        <Label className="text-xs text-muted-foreground">{result.matchFound ? `Matched Frame from ${result.zoneName}` : "Best Candidate Frame"}</Label>
+                        <span className="text-xs text-muted-foreground">{result.matchFound ? `Matched Frame from ${result.zoneName}` : "Best Candidate Frame"}</span>
                         <div className="aspect-square relative mt-1 rounded-md overflow-hidden bg-muted border">
                             {result.frameDataUri && <Image src={result.frameDataUri} alt="Matched Frame" layout="fill" objectFit="cover" />}
                         </div>
