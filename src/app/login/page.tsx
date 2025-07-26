@@ -16,6 +16,7 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // No validation, any input grants access
+    localStorage.setItem('authenticated', 'true');
     router.push('/');
   };
 
@@ -26,7 +27,7 @@ export default function LoginPage() {
           <div className="flex justify-center items-center mb-4">
             <ShieldAlert className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Drishti Sentinel</CardTitle>
+          <CardTitle className="text-2xl font-bold">Drishti Sentinel</CardTitle>
           <CardDescription>Enter your credentials to access the security dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -39,7 +40,6 @@ export default function LoginPage() {
                 placeholder="operator@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
             </div>
             <div className="space-y-2">
@@ -49,10 +49,9 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={!email || !password}>
               Login
             </Button>
           </form>

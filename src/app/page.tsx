@@ -1,16 +1,42 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/feature/Header';
 import { LiveCameraFeed } from '@/components/feature/LiveCameraFeed';
 import { AlertsPanel } from '@/components/feature/AlertsPanel';
 import { DrishtiSentinelProvider } from '@/contexts/DrishtiSentinelContext';
 
 const zones = [
-  { id: 'zone-1', name: 'Zone 1: Main Entrance', alarmSilenced: false },
-  { id: 'zone-2', name: 'Zone 2: Perimeter West', alarmSilenced: false },
+  { id: 'zone-1', name: 'Zone 1: Main Entrance', type: 'webcam', alarmSilenced: false },
+  { id: 'zone-2', name: 'Zone 2: Perimeter West', type: 'ip-camera', alarmSilenced: false, ipAddress: 'http://192.168.137.161:8080/video' },
 ];
 
 export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // This is a placeholder for real authentication logic.
+    // In a real app, you'd check for a token in localStorage or a cookie.
+    const loggedIn = localStorage.getItem('authenticated');
+    if (loggedIn) {
+      setIsAuthenticated(true);
+    } else {
+      // If not authenticated, you might want to redirect to login.
+      // For this-step-by-step build, we assume they came from the login page.
+      // You could add `useRouter` and `router.push('/login')` here.
+    }
+  }, []);
+
+  // You can show a loader or redirect here
+  if (!isAuthenticated && typeof window !== 'undefined' && !localStorage.getItem('authenticated')) {
+     // A simple redirect. For a better UX, consider a loading spinner
+     // while checking auth state.
+     if (typeof window !== "undefined") {
+       window.location.href = "/login";
+     }
+     return null;
+  }
+
   return (
     <DrishtiSentinelProvider initialZones={zones}>
       <div className="flex h-screen w-screen flex-col bg-background text-foreground">

@@ -7,14 +7,17 @@ export interface Alert {
   riskLevel: RiskLevel;
   timestamp: string;
   zoneId: string;
-  location: string;
+  location: string; // Should be a string for a geographic location, can be updated later
 }
 
 export interface Zone {
-  id: string;
+  id:string;
   name: string;
+  type: 'webcam' | 'ip-camera';
+  ipAddress?: string; // Only for ip-camera type
   alarmSilenced: boolean;
 }
+
 
 export type CrowdDensityAnalysisResult = {
   headCount: number;
